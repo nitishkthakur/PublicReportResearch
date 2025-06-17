@@ -1,9 +1,7 @@
-########### version 1 ############
 import os
 from typing import Dict, Any
 from langchain.agents import create_react_agent, AgentExecutor
 from langchain_core.tools import tool
-from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain import hub
 
@@ -25,33 +23,29 @@ class SimpleMetricExtractor:
             except Exception as e:
                 return f"Error loading PDF: {str(e)}"
         
-        @tool
+        @tool  
         def extract_specific_metric(text: str, metric_name: str) -> str:
             """Extract a specific financial metric from the earnings report text using LLM"""
             
-            extraction_prompt = PromptTemplate(
-                input_variables=["text", "metric"],
-                template="""
-                You are a financial analyst. Extract the specific metric requested from this earnings report.
-                
-                METRIC TO FIND: {metric}
-                
-                EARNINGS REPORT TEXT:
-                {text}
-                
-                INSTRUCTIONS:
-                1. Find the exact value for "{metric}" in the text
-                2. Include the numerical value with units (millions, billions, %, etc.)
-                3. If found, also include any period comparison (YoY, QoQ)
-                4. If not found, return "Metric not found in document"
-                5. Be precise and include context if helpful
-                
-                Return format: "Metric: [value] [additional context if relevant]"
-                """
-            )
+            prompt_text = f"""
+            You are a financial analyst. Extract the specific metric requested from this earnings report.
+            
+            METRIC TO FIND: {metric_name}
+            
+            EARNINGS REPORT TEXT:
+            {text}
+            
+            INSTRUCTIONS:
+            1. Find the exact value for "{metric_name}" in the text
+            2. Include the numerical value with units (millions, billions, %, etc.)
+            3. If found, also include any period comparison (YoY, QoQ)
+            4. If not found, return "Metric not found in document"
+            5. Be precise and include context if helpful
+            
+            Return format: "Metric: [value] [additional context if relevant]"
+            """
             
             try:
-                prompt_text = extraction_prompt.format(text=text, metric=metric_name)
                 response = self.llm.invoke(prompt_text)
                 return response.content
             except Exception as e:
@@ -133,13 +127,10 @@ def main():
         result = extractor.extract_metric(pdf_path, metric, bank)
         
         if result["success"]:
-            print(f"{result['result']}")
+            print(f"✅ {result['result']}")
         else:
-            print(f"Failed: {result['error']}")
+            print(f"❌ Failed: {result['error']}")
         print("-" * 50)
 
 if __name__ == "__main__":
     main()
-
-
-
