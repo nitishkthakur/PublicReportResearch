@@ -7,3 +7,7 @@ beautifulsoup4
 openpyxl
 matplotlib
 seaborn
+dash-bootstrap-components
+dash
+plotly
+
