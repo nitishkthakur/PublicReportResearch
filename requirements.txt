@@ -10,4 +10,4 @@ seaborn
 dash-bootstrap-components
 dash
 plotly
-
+reportlab
