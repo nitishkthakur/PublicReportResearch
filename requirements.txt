@@ -4,3 +4,4 @@ numpy
 requests
 httpx
 beautifulsoup4
+openpyxl
