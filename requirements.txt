@@ -5,3 +5,5 @@ requests
 httpx
 beautifulsoup4
 openpyxl
+matplotlib
+seaborn
