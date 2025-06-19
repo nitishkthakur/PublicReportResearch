@@ -12,6 +12,199 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Tabl
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
+import pandas as pd
+import numpy as np
+from basic_ollama_agent import OllamaAgent
+import ollama
+import json
+import inspect
+from typing import List, Callable, Optional, Any, Dict
+from pydantic import BaseModel
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+####### Read Data and set things up ########
+df = pd.read_excel("bank_earnings_data_2019-01-01_2025-12-31.xlsx", sheet_name="Bank_Earnings_Data")
+
+bank_name_mapping = {'AMERICAN EXPRESS COMPANY': 'American Express',
+    'Bank of America Corporation': 'Bank of America',
+    'CAPITAL\xa0ONE\xa0FINANCIAL\xa0CORP': 'Capital One',
+    'Citigroup\xa0Inc': 'Citi',
+    'Fifth Third Bancorp': 'Fifth Third',
+    'Huntington Bancshares Incorporated': 'Huntington Bank',
+    'JPMorgan Chase & Co': 'JPMorgan Chase',
+    'KeyCorp': 'KeyBank',
+    'NORTHERN TRUST CORPORATION': 'Northern Trust',
+    'PNC Financial Services Group, Inc.': 'PNC Bank',
+    "People's United Financial, Inc.": 'Peoples United',
+    'SCHWAB CHARLES CORP': 'Charles Schwab',
+    'STATE STREET CORPORATION': 'State Street',
+    'TEGNA INC.': 'Tegna',
+    'THE BANK OF NEW YORK MELLON CORPORATION': 'BNY Mellon',
+    'TRUIST FINANCIAL CORPORATION': 'Truist',
+    'The Goldman Sachs Group, Inc.': 'Goldman Sachs',
+    'US BANCORP \\DE\\': 'US Bancorp',
+    'WELLS FARGO & COMPANY/MN': 'Wells Fargo'
+
+}
+
+df['CompanyName'] = df['CompanyName'].replace(bank_name_mapping)
+### Generate prompt without xml tags for the agent
+role = "You are an expert Earnings Data Extractor and Analyzer. " 
+task = "Call the appropriate functions to extract the earnings data from the DataFrame and analyze it for the companies mentioned.\n"
+
+context_company_names = "\nWhen the user asks to search for a company, try to map their mentioned name to a list of pre-defined companies. The allowed company names are as follows :" + f"{', '.join(df['CompanyName'].unique().tolist())}" + "\n"
+
+Context = "\nHere are the metrics present in the data:" + f"{', '.join(df.columns.tolist()[2:])}" + ""
+prompt = role + task + context_company_names + Context
+
+def compare_metrics_latest(company_names: str, metric: str):
+    """
+    This function compares the latest values of a specified metric for a list of companies.
+
+    Args:
+        company_names (str): Comma-separated string of company names to compare.
+        metric (str): The metric to compare, e.g., 'EPS', 'Revenue', etc.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the latest values of the specified metric for the given companies.
+    
+    Raises:
+        ValueError: If the metric is not found in the DataFrame.
+    """
+    if type(company_names) is  str:
+        company_names = [name.strip() for name in company_names.split(',')]
+    
+    latest_date = df['Datetime'].max()
+    
+    # Filter df
+    latest_data = df[df['Datetime'] == latest_date]
+
+    # Select relevant companies
+    latest_data = latest_data[latest_data['CompanyName'].isin(company_names)]
+
+    # Check if metric exists
+    if metric not in latest_data.columns:
+        raise ValueError(f"Metric '{metric}' not found in the data.")
+    
+    # Extract the relevant data
+    metric_data = latest_data[['CompanyName', metric]].set_index('CompanyName')
+
+    return metric_data
+
+
+
+def plot_metrics_comparison_latest(company_names: str, metric: str):
+    """
+    This function plots the latest values of a specified metric for a list of companies.
+
+    Args:
+        company_names (str): Comma-separated string of company names to compare.
+        metric (str): The metric to compare, e.g., 'EPS', 'Revenue', etc.
+
+    Returns:
+        Matplotlib plot: A plot containing the latest values of the specified metric for the given companies.
+
+    Raises:
+        ValueError: If the metric is not found in the DataFrame.
+    """
+    if type(company_names) is  str:
+        company_names = [name.strip() for name in company_names.split(',')]
+    print(company_names)
+    latest_date = df['Datetime'].max()
+    
+    # Filter df
+    latest_data = df[df['Datetime'] == latest_date]
+
+    # Select relevant companies
+    latest_data = latest_data[latest_data['CompanyName'].isin(company_names)]
+
+    # Check if metric exists
+    if metric not in latest_data.columns:
+        raise ValueError(f"Metric '{metric}' not found in the data.")
+    
+    # Extract the relevant data
+    metric_data = latest_data[['CompanyName', metric]].set_index('CompanyName')
+    metric_data = metric_data.sort_values(by=metric, ascending=False)
+    
+    # Plotting  
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=metric_data.index, y=metric_data[metric], palette='viridis')
+    plt.title(f'Latest {metric} Comparison for Companies')
+    plt.xlabel('Company Name')
+    plt.ylabel(metric)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+    return plt.gcf()
+
+
+def plot_and_compare_metrics_over_history(company_names: str, metric: str):
+    """ This function plots the historical values of a specified metric for a list of companies over time. Call this when trying to see trend or over time.
+    
+    Args:
+        company_names (str): Comma-separated string of company names to compare.
+        metric (str): The metric to compare, e.g., 'EPS', 'Revenue', etc.
+    Returns:
+        Matplotlib plot: A plot containing the historical values of the specified metric for the given companies.
+            
+    Raises:
+        ValueError: If the metric is not found in the DataFrame.
+    """
+    # Filter for company
+    if type(company_names) is  str:
+        company_names = [name.strip() for name in company_names.split(',')]
+    
+    # Filter df
+    filtered_df = df[df['CompanyName'].isin(company_names)]
+
+    # Check if metric exists
+    if metric not in filtered_df.columns:
+        raise ValueError(f"Metric '{metric}' not found in the data.")
+    
+    # Plotting
+    plt.figure(figsize=(12, 8))
+    sns.lineplot(data=filtered_df, x='Datetime', y=metric, hue='CompanyName', marker='o')
+    plt.title(f'{metric} Over Time for Companies')
+    plt.xlabel('Date')
+    plt.ylabel(metric)
+    plt.xticks(rotation=45)
+    plt.legend(title='Company Name')
+    plt.tight_layout()
+    plt.show()
+    return plt.gcf()
+
+# Create agent
+model = "qwen2.5:7b"
+agent = OllamaAgent(
+    model_name=model,
+    tools=[compare_metrics_latest, plot_metrics_comparison_latest, plot_and_compare_metrics_over_history],
+    output_schema=None
+)
+
+# Use agent
+#result = agent.invoke(prompt + "Plot the interest income of wells fargo, JP morgan, citi, american express and bank of america for the latest date.")
+#result = agent.invoke(prompt + "Plot the interest income of wells fargo, JP morgan, citi, american express and bank of america for history")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
@@ -141,41 +334,9 @@ app.layout = html.Div([
 
 def get_chatbot_response(user_message):
     message_lower = user_message.lower()
-
-    if "chart" in message_lower or "plot" in message_lower or "graph" in message_lower:
-        fig, ax = plt.subplots(figsize=(10, 6))
-        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-        revenue = [100, 120, 130, 110, 140, 160]
-        ax.plot(months, revenue, marker='o', linewidth=2, markersize=8, color=WF_RED)
-        ax.set_title('Wells Fargo Revenue Trend', fontsize=16, fontweight='bold')
-        ax.set_ylabel('Revenue (Millions $)', fontsize=12)
-        ax.set_xlabel('Month', fontsize=12)
-        ax.grid(True, alpha=0.3)
-        ax.set_facecolor('#f8f9fa')
-        plt.tight_layout()
-        return fig
-
-    elif "data" in message_lower or "table" in message_lower or "dataframe" in message_lower:
-        data = {
-            'Quarter': ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
-            'Revenue ($M)': [20500, 21300, 20860, 21200],
-            'Net Income ($M)': [4600, 4800, 4500, 4700],
-            'EPS ($)': [1.25, 1.30, 1.22, 1.28]
-        }
-        return pd.DataFrame(data)
-
-    else:
-        responses = {
-            "hello": "Hello! How can I help you with earnings research today?",
-            "revenue": "Wells Fargo's revenue has shown steady growth over the past quarters, primarily driven by net interest income and fee-based services.",
-            "earnings": "Recent earnings reports show strong performance with consistent EPS growth and improved efficiency ratios.",
-            "help": "I can help you with:\n• Financial data analysis\n• Earnings trend charts\n• Revenue breakdowns\n• Comparative analysis\n• Custom reports\n\nJust ask me what you'd like to know!"
-        }
-        for key, response in responses.items():
-            if key in message_lower:
-                return response
-        return f"I understand you're asking about: '{user_message}'. This is a mock response. In the actual implementation, your chatbot function would process this query and return appropriate financial analysis, data, or visualizations."
-
+    result = agent.invoke(prompt + message_lower)
+    return result['tool_calls'][0]['result']
+    
 
 def format_response_for_display(response):
     if isinstance(response, str):
