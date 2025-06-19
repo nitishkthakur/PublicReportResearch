@@ -1,4 +1,4 @@
-import ollama
+import requests
 import json
 import inspect
 from typing import List, Callable, Optional, Any, Dict
@@ -10,7 +10,14 @@ class OllamaAgent:
     A simple agent class for interacting with Ollama models with tool support and structured output.
     """
     
-    def __init__(self, model_name: str, tools: List[Callable], output_schema: Optional[BaseModel] = None):
+    def __init__(
+        self,
+        model_name: str,
+        tools: List[Callable],
+        output_schema: Optional[BaseModel] = None,
+        endpoint: str = "http://---.11434/api/chat",
+        proxies: Optional[Dict[str, str]] = None,
+    ):
         """
         Initialize the Ollama Agent.
         
@@ -18,10 +25,14 @@ class OllamaAgent:
             model_name: Name of the Ollama model to use
             tools: List of callable functions that can be used as tools
             output_schema: Optional Pydantic model for structured JSON output
+            endpoint: URL of the Ollama chat API
+            proxies: Proxy dictionary passed to ``requests.post``
         """
         self.model_name = model_name
         self.tools = tools
         self.output_schema = output_schema
+        self.endpoint = endpoint
+        self.proxies = proxies if proxies is not None else {"http": "", "https": ""}
         self.tool_schemas = self._generate_tool_schemas()
     
     def _generate_tool_schemas(self) -> List[Dict[str, Any]]:
@@ -129,7 +140,13 @@ class OllamaAgent:
                 request_params['format'] = self.output_schema.model_json_schema()
             
             # Make the request to Ollama
-            response = ollama.chat(**request_params)
+            response = requests.post(
+                self.endpoint,
+                json=request_params,
+                proxies=self.proxies,
+            )
+            response.raise_for_status()
+            response = response.json()
             
             result = {
                 'message': response['message']['content'],
