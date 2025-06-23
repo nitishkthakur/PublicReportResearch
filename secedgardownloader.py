@@ -22,6 +22,7 @@ for ticker in TOP20:
     resp = facts_dict.get(ticker)
     if resp is None:
         continue
+    company_name = resp.get("entityName", ticker)
     usgaap = resp.get("facts", {}).get("us-gaap", {})
     
     for tag, info in usgaap.items():
@@ -40,6 +41,7 @@ for ticker in TOP20:
 
                 records.append({
                     "Company": ticker,
+                    "CompanyName": company_name,
                     "Datetime": period_end,
                     "Metric": tag,
                     "Value": entry.get("val")
@@ -53,7 +55,7 @@ df = pd.DataFrame.from_records(records)
 df_wide = (
     df
     .pivot_table(
-        index=["Company", "Datetime"],
+        index=["Company", "CompanyName", "Datetime"],
         columns="Metric",
         values="Value",
         aggfunc="first"
@@ -62,7 +64,7 @@ df_wide = (
 )
 # remove axis name and sort
 df_wide.columns.name = None
-df_wide = df_wide.sort_values(["Company", "Datetime"])
+df_wide = df_wide.sort_values(["Company", "CompanyName", "Datetime"])
 
 # ─── 4. SAVE TO EXCEL ────────────────────────────────────────────────────────
 output_path = "top20_banks_last10yrs.xlsx"

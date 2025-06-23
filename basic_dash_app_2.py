@@ -14,7 +14,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 import pandas as pd
 import numpy as np
-from basic_ollama_agent import OllamaAgent
+from basic_ollama_agent_with_post import OllamaAgent
 import ollama
 import json
 import inspect
@@ -25,7 +25,7 @@ import seaborn as sns
 
 
 ####### Read Data and set things up ########
-df = pd.read_excel("bank_earnings_data_2019-01-01_2025-12-31.xlsx", sheet_name="Bank_Earnings_Data")
+df = pd.read_excel("/home/nitish/Documents/github/PublicReportResearch/12_metrics.xlsx", sheet_name="Bank_Earnings_Data")
 
 bank_name_mapping = {'AMERICAN EXPRESS COMPANY': 'American Express',
     'Bank of America Corporation': 'Bank of America',
@@ -91,7 +91,7 @@ def compare_metrics_latest(company_names: str, metric: str):
     # Extract the relevant data
     metric_data = latest_data[['CompanyName', metric]].set_index('CompanyName')
 
-    return metric_data
+    return metric_data.reset_index()
 
 
 
@@ -507,4 +507,4 @@ app.clientside_callback(
 )
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=8050)
+    app.run(debug=True)
