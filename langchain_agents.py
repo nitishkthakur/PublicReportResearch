@@ -5,32 +5,18 @@ from __future__ import annotations
 import os
 from typing import List, Iterable, Optional
 
-try:
-    import pdfplumber
-except ImportError:  # pragma: no cover - pdfplumber may not be installed
-    pdfplumber = None
+import pdfplumber
+from langchain.docstore.document import Document
+from langchain.text_splitter import (
+    RecursiveCharacterTextSplitter,
+    SemanticChunker,
+)
+from langchain.embeddings import OllamaEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain.chains import RetrievalQA
+from langchain.chat_models import ChatOllama
 
-# LangChain imports are optional to keep the file importable without them.
-try:
-    from langchain.docstore.document import Document
-    from langchain.text_splitter import (
-        RecursiveCharacterTextSplitter,
-        SemanticChunker,
-    )
-    from langchain.embeddings import OllamaEmbeddings
-    from langchain.vectorstores import FAISS
-    from langchain.retrievers.multi_query import MultiQueryRetriever
-    from langchain.chains import RetrievalQA
-    from langchain.chat_models import ChatOllama
-except Exception:  # pragma: no cover - langchain may not be installed
-    Document = None  # type: ignore
-    RecursiveCharacterTextSplitter = None  # type: ignore
-    SemanticChunker = None  # type: ignore
-    OllamaEmbeddings = None  # type: ignore
-    FAISS = None  # type: ignore
-    MultiQueryRetriever = None  # type: ignore
-    RetrievalQA = None  # type: ignore
-    ChatOllama = None  # type: ignore
 
 
 class RAG:
@@ -52,19 +38,15 @@ class RAG:
         self.embedding_model_name = embedding_model
         self.llm_model_name = llm_model
 
-        self.embeddings = (
-            OllamaEmbeddings(model=embedding_model) if OllamaEmbeddings else None
-        )
-        self.llm = ChatOllama(model=llm_model) if ChatOllama else None
+        self.embeddings = OllamaEmbeddings(model=embedding_model)
+        self.llm = ChatOllama(model=llm_model)
+
         self.vector_store: Optional[FAISS] = None
 
     # ------------------------------------------------------------------
     # Document Loading utilities
     # ------------------------------------------------------------------
     def _load_pdf(self, path: str) -> List["Document"]:
-        if pdfplumber is None:
-            raise ImportError("pdfplumber is required to read PDF files")
-
         docs: List[Document] = []
         with pdfplumber.open(path) as pdf:
             for i, page in enumerate(pdf.pages, 1):
