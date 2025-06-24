@@ -8,9 +8,9 @@ from typing import List, Iterable, Optional
 import pdfplumber
 from langchain.docstore.document import Document
 from langchain.text_splitter import (
-    RecursiveCharacterTextSplitter,
-    SemanticChunker,
+    RecursiveCharacterTextSplitter
 )
+from langchain_experimental.text_splitter import SemanticChunker
 from langchain.embeddings import OllamaEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.retrievers.multi_query import MultiQueryRetriever
@@ -106,7 +106,7 @@ class RAG:
     def load_vector_store(self, path: str) -> None:
         if self.embeddings is None:
             raise ImportError("LangChain embeddings are required")
-        self.vector_store = FAISS.load_local(path, self.embeddings)
+        self.vector_store = FAISS.load_local(path, self.embeddings, allow_dangerous_deserialization = True)
 
     def _get_retriever(self) -> "MultiQueryRetriever":
         if self.vector_store is None:
