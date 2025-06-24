@@ -18,6 +18,7 @@ from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOllama
 
 
+
 class RAG:
     """Simple Retrieval-Augmented Generation helper."""
 
@@ -39,6 +40,7 @@ class RAG:
 
         self.embeddings = OllamaEmbeddings(model=embedding_model)
         self.llm = ChatOllama(model=llm_model)
+
         self.vector_store: Optional[FAISS] = None
 
     # ------------------------------------------------------------------
