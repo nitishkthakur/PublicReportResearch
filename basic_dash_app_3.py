@@ -14,13 +14,11 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 import pandas as pd
 import numpy as np
-from basic_ollama_agent_with_post import OllamaAgent
-import ollama
-import json
-import inspect
-from typing import List, Callable, Optional, Any, Dict
-from pydantic import BaseModel
-import matplotlib.pyplot as plt
+from langchain_agents import RAG
+import pdfkit
+import shutil
+import os
+from typing import List
 import seaborn as sns
 
 
@@ -176,17 +174,6 @@ def plot_and_compare_metrics_over_history(company_names: str, metric: str):
     plt.show()
     return plt.gcf()
 
-# Create agent
-model = "qwen2.5:7b"
-agent = OllamaAgent(
-    model_name=model,
-    tools=[compare_metrics_latest, plot_metrics_comparison_latest, plot_and_compare_metrics_over_history],
-    output_schema=None
-)
-
-# Use agent
-#result = agent.invoke(prompt + "Plot the interest income of wells fargo, JP morgan, citi, american express and bank of america for the latest date.")
-#result = agent.invoke(prompt + "Plot the interest income of wells fargo, JP morgan, citi, american express and bank of america for history")
 
 
 
@@ -206,6 +193,30 @@ agent = OllamaAgent(
 
 
 
+
+
+DOCS_DIR = os.path.join(os.getcwd(), "docs")
+INDEX_DIR = os.path.join(os.getcwd(), "rag_index")
+
+pre_prompt = """Answer the question asked by the user. Support your answer with data in tabular format.
+Provide tables and supporting commentary. Provide the answer only in HTML format. When the user asks a question, give more context that helps them understand better and more.
+If they ask for one metric, give surrounding information which will be useful to Finance Experts about other related metrics and other quarters.
+Follow the following steps:
+1. Plan and list out what you will present to the user in <think> </think> tags.
+2. Start the answer after the think tags.
+3. The Answer should be in proper html format. The answer should start with <!DOCTYPE html> tag. Make sure to add some basic css to beautify the answer section only
+4. Only provide html, not markdown or any other format.
+5. Do not provide any explanation or commentary outside the html tags.
+6. The commentary should be detailed. Compare previous quarters, other related metrics.
+If the user asks to summarize the report of a particular company, quarter, then list out first, the top 20 metrics to analyze.
+"""
+
+rag = RAG(llm_model="qwen2.5:7b", pre_prompt=pre_prompt)
+try:
+    rag.load_vector_store(INDEX_DIR)
+except Exception:
+    rag.build_vector_store(DOCS_DIR)
+    rag.save_vector_store(INDEX_DIR)
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
@@ -334,13 +345,19 @@ app.layout = html.Div([
 
 
 def get_chatbot_response(user_message):
-    message_lower = user_message.lower()
-    result = agent.invoke(prompt + message_lower)
-    return result['tool_calls'][0]['result']
+    return rag.invoke(user_message)
     
 
 def format_response_for_display(response):
     if isinstance(response, str):
+        stripped = response.strip()
+        if stripped.startswith("<!DOCTYPE html>") or stripped.startswith("<html"):
+            iframe = html.Iframe(srcDoc=response, style={'width': '100%', 'height': '600px', 'border': 'none'})
+            return html.Div([
+                html.Strong("Assistant: "),
+                html.Br(),
+                iframe
+            ], style=custom_styles['bot_message'])
         return html.Div([
             html.Strong("Assistant: "),
             html.Span(response)
@@ -382,6 +399,45 @@ def format_response_for_display(response):
 
 
 def generate_pdf(history):
+    html_items = [item for item in history if item['type'] == 'bot' and item.get('subtype') == 'html']
+    if html_items and shutil.which('wkhtmltopdf'):
+        html_chunks = []
+        for item in history:
+            if item['type'] == 'user':
+                html_chunks.append(f"<p><strong>You:</strong> {item['content']}</p>")
+            elif item['type'] == 'bot':
+                subtype = item.get('subtype', 'text')
+                if subtype == 'html':
+                    html_chunks.append(item['data'])
+                elif subtype == 'text':
+                    html_chunks.append(f"<p><strong>Assistant:</strong> {item['data']}</p>")
+                elif subtype == 'dataframe':
+                    df = pd.DataFrame(item['data'], columns=item['columns'])
+                    html_chunks.append("<p><strong>Assistant:</strong></p>" + df.to_html(index=False, classes="styled-table"))
+                elif subtype == 'image':
+                    img_src = f"data:image/png;base64,{item['data']}"
+                    html_chunks.append(f"<p><strong>Assistant:</strong></p><img src=\"{img_src}\" style=\"max-width:100%;\"/>")
+        html_body = "\n".join(html_chunks)
+        complete_html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=\"UTF-8\"> 
+  <title>Chat History</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; padding:20px; }}
+    .styled-table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
+    .styled-table th, .styled-table td {{ padding: 8px; border: 1px solid #ddd; }}
+    .styled-table th {{ background-color: #f2f2f2; }}
+  </style>
+</head>
+<body>
+{html_body}
+</body>
+</html>
+"""
+        pdf_bytes = pdfkit.from_string(complete_html, False)
+        return pdf_bytes
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
@@ -439,7 +495,15 @@ def update_chat(n_clicks, n_submit, user_input, chat_children, chat_history):
 
     bot_response = get_chatbot_response(user_input)
 
-    if isinstance(bot_response, pd.DataFrame):
+    if isinstance(bot_response, str) and bot_response.strip().startswith("<!DOCTYPE html>"):
+        bot_message_div = format_response_for_display(bot_response)
+        store_bot = {
+            'type': 'bot',
+            'subtype': 'html',
+            'data': bot_response,
+            'timestamp': datetime.now().isoformat()
+        }
+    elif isinstance(bot_response, pd.DataFrame):
         bot_message_div = format_response_for_display(bot_response)
         store_bot = {
             'type': 'bot',
