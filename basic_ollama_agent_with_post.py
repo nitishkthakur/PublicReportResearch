@@ -224,3 +224,8 @@ if __name__ == "__main__":
     # Use agent
     result = agent.invoke("What's the Sum of 11 and 22? Also, what's the product of 11 and 22?")
     print(result)
+
+
+
+    # 2 step process - Lite report
+    

@@ -30,6 +30,7 @@ class RAG:
         n_results: int = 10,
         embedding_model: str = "nomic-embed-text",
         llm_model: str = "qwen2.5:7b",
+        pre_prompt: Optional[str] = "",
     ) -> None:
         self.chunker = chunker
         self.chunk_size = chunk_size
@@ -37,6 +38,7 @@ class RAG:
         self.n_results = n_results
         self.embedding_model_name = embedding_model
         self.llm_model_name = llm_model
+        self.pre_prompt = pre_prompt
 
         self.embeddings = OllamaEmbeddings(model=embedding_model)
         self.llm = ChatOllama(model=llm_model)
@@ -82,8 +84,6 @@ class RAG:
         if self.chunker == "semantic":
             splitter = SemanticChunker(
                 embeddings=self.embeddings,
-                chunk_size=self.chunk_size,
-                chunk_overlap=self.chunk_overlap,
             )
         else:
             splitter = RecursiveCharacterTextSplitter(
@@ -112,7 +112,7 @@ class RAG:
         if self.vector_store is None:
             raise ValueError("Vector store is not initialized")
         base = self.vector_store.as_retriever(search_kwargs={"k": self.n_results})
-        return MultiQueryRetriever.from_llm(self.llm, base)
+        return MultiQueryRetriever.from_llm(base, self.llm)
 
     # ------------------------------------------------------------------
     # User facing methods
@@ -121,7 +121,7 @@ class RAG:
         """Return the answer to ``question`` using retrieval augmented generation."""
         retriever = self._get_retriever()
         chain = RetrievalQA.from_chain_type(self.llm, retriever=retriever)
-        result = chain.invoke({"query": question})
+        result = chain.invoke({"query": self.pre_prompt + question})
         return result["result"] if isinstance(result, dict) else result
 
     def stream(self, question: str) -> Iterable[str]:
