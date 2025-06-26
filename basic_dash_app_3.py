@@ -426,8 +426,8 @@ def generate_pdf(history):
   <title>Chat History</title>
   <style>
     body {{ font-family: Arial, sans-serif; padding:20px; }}
-    .styled-table {{ border-collapse: collapse; width:100%; margin-bottom:20px; }}
-    .styled-table th, .styled-table td {{ padding:8px; border:1px solid #ddd; }}
+    .styled-table {{ border-collapse: collapse; width:100%; margin-bottom:20px; table-layout:auto; }}
+    .styled-table th, .styled-table td {{ padding:12px 15px; border:1px solid #ddd; text-align:left; vertical-align:top; }}
     .styled-table th {{ background-color:#f2f2f2; }}
   </style>
 </head>

@@ -16,6 +16,7 @@ from langchain.vectorstores import FAISS
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOllama
+from langchain.prompts import PromptTemplate
 
 
 
@@ -120,14 +121,34 @@ class RAG:
     def invoke(self, question: str) -> str:
         """Return the answer to ``question`` using retrieval augmented generation."""
         retriever = self._get_retriever()
-        chain = RetrievalQA.from_chain_type(self.llm, retriever=retriever)
-        result = chain.invoke({"query": self.pre_prompt + question})
+        # Use raw question for retrieval; instruct the LLM with the pre_prompt
+        prompt_template = PromptTemplate(
+            input_variables=["context", "question"],
+            template=self.pre_prompt + "\n\nContext:\n{context}\n\nQuestion: {question}",
+        )
+        chain = RetrievalQA.from_chain_type(
+            self.llm,
+            retriever=retriever,
+            chain_type="stuff",
+            chain_type_kwargs={"prompt": prompt_template},
+        )
+        result = chain.invoke({"query": question})
         return result["result"] if isinstance(result, dict) else result
 
     def stream(self, question: str) -> Iterable[str]:
         """Yield the answer tokens for ``question`` as they are produced."""
         retriever = self._get_retriever()
-        chain = RetrievalQA.from_chain_type(self.llm, retriever=retriever, streaming=True)
+        prompt_template = PromptTemplate(
+            input_variables=["context", "question"],
+            template=self.pre_prompt + "\n\nContext:\n{context}\n\nQuestion: {question}",
+        )
+        chain = RetrievalQA.from_chain_type(
+            self.llm,
+            retriever=retriever,
+            chain_type="stuff",
+            chain_type_kwargs={"prompt": prompt_template},
+            streaming=True,
+        )
         for chunk in chain.stream({"query": question}):
             if isinstance(chunk, dict):
                 yield chunk.get("result", "")
