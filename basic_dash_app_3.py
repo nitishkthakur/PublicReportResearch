@@ -15,10 +15,12 @@ from reportlab.lib import colors
 import pandas as pd
 import numpy as np
 from langchain_agents import RAG
-import pdfkit
-import shutil
+try:
+    from xhtml2pdf import pisa
+except ImportError:
+    pisa = None
 import os
-from typing import List
+from typing import List, Any
 import seaborn as sns
 
 
@@ -399,56 +401,64 @@ def format_response_for_display(response):
 
 
 def generate_pdf(history):
-    html_items = [item for item in history if item['type'] == 'bot' and item.get('subtype') == 'html']
-    if html_items and shutil.which('wkhtmltopdf'):
-        html_chunks = []
-        for item in history:
-            if item['type'] == 'user':
-                html_chunks.append(f"<p><strong>You:</strong> {item['content']}</p>")
-            elif item['type'] == 'bot':
-                subtype = item.get('subtype', 'text')
-                if subtype == 'html':
-                    html_chunks.append(item['data'])
-                elif subtype == 'text':
-                    html_chunks.append(f"<p><strong>Assistant:</strong> {item['data']}</p>")
-                elif subtype == 'dataframe':
-                    df = pd.DataFrame(item['data'], columns=item['columns'])
-                    html_chunks.append("<p><strong>Assistant:</strong></p>" + df.to_html(index=False, classes="styled-table"))
-                elif subtype == 'image':
-                    img_src = f"data:image/png;base64,{item['data']}"
-                    html_chunks.append(f"<p><strong>Assistant:</strong></p><img src=\"{img_src}\" style=\"max-width:100%;\"/>")
-        html_body = "\n".join(html_chunks)
-        complete_html = f"""<!DOCTYPE html>
+    # Build a unified HTML representation of the chat
+    html_chunks: List[str] = []
+    for item in history:
+        if item['type'] == 'user':
+            html_chunks.append(f"<p><strong>You:</strong> {item['content']}</p>")
+        elif item['type'] == 'bot':
+            subtype = item.get('subtype', 'text')
+            if subtype == 'html':
+                html_chunks.append(item['data'])
+            elif subtype == 'text':
+                html_chunks.append(f"<p><strong>Assistant:</strong> {item['data']}</p>")
+            elif subtype == 'dataframe':
+                df = pd.DataFrame(item['data'], columns=item['columns'])
+                html_chunks.append("<p><strong>Assistant:</strong></p>" + df.to_html(index=False, classes="styled-table"))
+            elif subtype == 'image':
+                img_src = f"data:image/png;base64,{item['data']}"
+                html_chunks.append(f"<p><strong>Assistant:</strong></p><img src=\"{img_src}\" style=\"max-width:100%;\"/>")
+
+    complete_html = f"""<!DOCTYPE html>
 <html>
 <head>
   <meta charset=\"UTF-8\"> 
   <title>Chat History</title>
   <style>
     body {{ font-family: Arial, sans-serif; padding:20px; }}
-    .styled-table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
-    .styled-table th, .styled-table td {{ padding: 8px; border: 1px solid #ddd; }}
-    .styled-table th {{ background-color: #f2f2f2; }}
+    .styled-table {{ border-collapse: collapse; width:100%; margin-bottom:20px; }}
+    .styled-table th, .styled-table td {{ padding:8px; border:1px solid #ddd; }}
+    .styled-table th {{ background-color:#f2f2f2; }}
   </style>
 </head>
 <body>
-{html_body}
+{"".join(html_chunks)}
 </body>
 </html>
 """
-        pdf_bytes = pdfkit.from_string(complete_html, False)
-        return pdf_bytes
-
+    # Attempt HTML-to-PDF conversion via xhtml2pdf (pip install xhtml2pdf)
+    if pisa:
+        pdf_buffer = io.BytesIO()
+        pisa_status = pisa.CreatePDF(src=complete_html, dest=pdf_buffer)
+        if not pisa_status.err:
+            pdf_buffer.seek(0)
+            return pdf_buffer.getvalue()
+    # Fallback to basic ReportLab PDF
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
-    elements = []
+    elements: List[Any] = []
     for item in history:
         if item['type'] == 'user':
             elements.append(Paragraph(f"You: {item['content']}", styles['Normal']))
             elements.append(Spacer(1, 12))
         elif item['type'] == 'bot':
             subtype = item.get('subtype', 'text')
-            if subtype == 'text':
+            if subtype == 'html':
+                elements.append(Paragraph("Assistant (HTML content):", styles['Normal']))
+                elements.append(Paragraph(item['data'], styles['Normal']))
+                elements.append(Spacer(1, 12))
+            elif subtype == 'text':
                 elements.append(Paragraph(f"Assistant: {item['data']}", styles['Normal']))
                 elements.append(Spacer(1, 12))
             elif subtype == 'dataframe':
@@ -456,8 +466,8 @@ def generate_pdf(history):
                 tbl_data = [item['columns']] + [list(map(str, row)) for row in df.values]
                 table = Table(tbl_data)
                 table.setStyle(TableStyle([
-                    ('GRID', (0,0), (-1,-1), 1, colors.black),
-                    ('BACKGROUND', (0,0), (-1,0), colors.lightgrey)
+                    ("GRID", (0,0), (-1,-1), 1, colors.black),
+                    ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
                 ]))
                 elements.append(Paragraph("Assistant:", styles['Normal']))
                 elements.append(table)
