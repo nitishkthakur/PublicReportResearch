@@ -347,14 +347,19 @@ app.layout = html.Div([
 
 
 def get_chatbot_response(user_message):
-    return rag.invoke(user_message)
+    result = rag.invoke(user_message)
+    idx = result.find("<!DOCTYPE html>")
+    if idx != -1:
+        result = result[idx:]
+    return result
     
 
 def format_response_for_display(response):
     if isinstance(response, str):
         stripped = response.strip()
-        if stripped.startswith("<!DOCTYPE html>") or stripped.startswith("<html"):
-            iframe = html.Iframe(srcDoc=response, style={'width': '100%', 'height': '600px', 'border': 'none'})
+        if "<!DOCTYPE html>" in response or stripped.startswith("<html"):
+            iframe = html.Iframe(srcDoc=response,
+                                 style={'width': '100%', 'height': '600px', 'border': 'none'})
             return html.Div([
                 html.Strong("Assistant: "),
                 html.Br(),
@@ -505,7 +510,7 @@ def update_chat(n_clicks, n_submit, user_input, chat_children, chat_history):
 
     bot_response = get_chatbot_response(user_input)
 
-    if isinstance(bot_response, str) and bot_response.strip().startswith("<!DOCTYPE html>"):
+    if isinstance(bot_response, str) and "<!DOCTYPE html>" in bot_response:
         bot_message_div = format_response_for_display(bot_response)
         store_bot = {
             'type': 'bot',
