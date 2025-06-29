@@ -12,7 +12,8 @@ def structured_output(
     model: str = "qwen3:4b",
     history: str = "",
     schema_model: Type[BaseModel] = None,
-    prompt: str = ""
+    prompt: str = "",
+    system_instructions: str = "Format output as valid JSON only."
 ) -> dict:
     """
     Query an Ollama model via Client, enforce a Pydantic schema, and return validated output.
@@ -35,6 +36,8 @@ def structured_output(
     messages: List[Dict[str, Any]] = []
     if history:
         messages.append({"role": "user", "content": history})
+    messages.append({"role": "system", "content": system_instructions})
+
     messages.append({"role": "user", "content": prompt})
 
     fmt = schema_model.model_json_schema()
