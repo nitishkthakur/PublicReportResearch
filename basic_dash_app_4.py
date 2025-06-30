@@ -522,10 +522,11 @@ app.clientside_callback(
     [Input("nav-kpi", "n_clicks"),
      Input("nav-compare", "n_clicks"),
      Input("nav-revenue", "n_clicks"),
-     Input("nav-eps", "n_clicks")],
+     Input("nav-eps", "n_clicks"),
+     Input("nav-download-data", "n_clicks")],
     prevent_initial_call=True
 )
-def handle_sidebar_navigation(kpi_clicks, compare_clicks, revenue_clicks, eps_clicks):
+def handle_sidebar_navigation(kpi_clicks, compare_clicks, revenue_clicks, eps_clicks, download_data_clicks):
     ctx = callback_context
     if not ctx.triggered:
         return dash.no_update
@@ -535,6 +536,38 @@ def handle_sidebar_navigation(kpi_clicks, compare_clicks, revenue_clicks, eps_cl
         html.H3("Coming Soon", style={'textAlign': 'center', 'color': '#666', 'marginTop': '100px'}),
         html.P("This feature is under development.", style={'textAlign': 'center', 'color': '#999'})
     ])]
+
+# Add callback for upload button
+@app.callback(
+    [Output("chat-container", "children", allow_duplicate=True),
+     Output("chat-history", "data", allow_duplicate=True)],
+    Input("upload-button", "n_clicks"),
+    [State("chat-container", "children"),
+     State("chat-history", "data")],
+    prevent_initial_call=True
+)
+def handle_upload(upload_clicks, chat_children, chat_history):
+    if upload_clicks > 0:
+        # Create upload message
+        upload_message = html.Div([
+            html.Strong("Assistant: "),
+            html.Span("Upload functionality is under development. This feature will allow you to upload files for analysis.")
+        ], style=custom_styles['bot_message'])
+        
+        # Update chat history
+        store_bot = {
+            'type': 'bot',
+            'subtype': 'text',
+            'data': 'Upload functionality is under development. This feature will allow you to upload files for analysis.',
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        new_history = chat_history + [store_bot]
+        updated_chat = chat_children + [upload_message]
+        
+        return updated_chat, new_history
+    
+    return dash.no_update, dash.no_update
 
 # Add callback to reset chat when clicking on Chat navigation
 @app.callback(

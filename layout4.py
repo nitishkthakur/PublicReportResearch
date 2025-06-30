@@ -101,7 +101,9 @@ custom_styles = {
     'input_container': {
         'display': 'flex',
         'gap': '10px',
-        'alignItems': 'center'
+        'alignItems': 'center',
+        'marginTop': '10px',
+        'paddingBottom': '15px'
     },
     'text_input': {
         'flex': '1',
@@ -123,7 +125,7 @@ custom_styles = {
     },
     'main_content': {
         'marginLeft': '270px',
-        'padding': '20px'
+        'padding': '20px 20px 10px 20px'
     },
     'bank_selector_container': {
         'marginBottom': '20px',
@@ -181,6 +183,7 @@ def get_layout():
                     html.Div("Chat", style=custom_styles['sidebar_item'], id="nav-chat"),
                     html.Div("KPI Overview", style=custom_styles['sidebar_item'], id="nav-kpi"),
                     html.Div("Compare Reports", style=custom_styles['sidebar_item'], id="nav-compare"),
+                    html.Div("Download Data", style=custom_styles['sidebar_item'], id="nav-download-data"),
                 ])
             ], style=custom_styles['sidebar_section']),
             
@@ -204,9 +207,9 @@ def get_layout():
                 html.Div([
                     html.Div("Select Bank for Earnings Report", style=custom_styles['bank_selector_title']),
                     html.Div([
+                        html.Button("Wells Fargo", style=custom_styles['bank_button'], id="bank-wfc", n_clicks=0),
                         html.Button("JPMorgan Chase", style=custom_styles['bank_button'], id="bank-jpm", n_clicks=0),
                         html.Button("Bank of America", style=custom_styles['bank_button'], id="bank-boa", n_clicks=0),
-                        html.Button("Wells Fargo", style=custom_styles['bank_button'], id="bank-wfc", n_clicks=0),
                         html.Button("Citigroup", style=custom_styles['bank_button'], id="bank-citi", n_clicks=0),
                         html.Button("Goldman Sachs", style=custom_styles['bank_button'], id="bank-gs", n_clicks=0),
                         html.Button("Morgan Stanley", style=custom_styles['bank_button'], id="bank-ms", n_clicks=0),
@@ -243,6 +246,12 @@ def get_layout():
                         style=custom_styles['submit_button']
                     ),
                     html.Button(
+                        "Upload",
+                        id="upload-button",
+                        n_clicks=0,
+                        style=custom_styles['submit_button']
+                    ),
+                    html.Button(
                         "Download PDF",
                         id="download-button",
                         n_clicks=0,
@@ -250,11 +259,9 @@ def get_layout():
                     )
                 ], style=custom_styles['input_container']),
 
-                html.Br(),
-
                 dcc.Store(id="chat-history", data=[]),
                 dcc.Download(id="download-pdf")
 
-            ], fluid=True, style={'paddingTop': '20px', 'paddingBottom': '20px'})
+            ], fluid=True, style={'paddingTop': '20px', 'paddingBottom': '10px'})
         ], style=custom_styles['main_content'])
     ])
