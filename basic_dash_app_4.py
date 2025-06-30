@@ -14,7 +14,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 import pandas as pd
 import numpy as np
-from langchain_agents import RAG
+from rags import RAG
 try:
     from xhtml2pdf import pisa
 except ImportError:
