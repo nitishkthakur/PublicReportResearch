@@ -193,6 +193,9 @@ def get_layout():
                 html.Div([
                     html.Div("Revenue", style=custom_styles['sidebar_item'], id="nav-revenue"),
                     html.Div("Earnings Per Share", style=custom_styles['sidebar_item'], id="nav-eps"),
+                    html.Div("Net Income", style=custom_styles['sidebar_item'], id="nav-net-income"),
+                    html.Div("Segment Performance", style=custom_styles['sidebar_item'], id="nav-segment-performance"),
+                    html.Div("Capital & Risk Metrics", style=custom_styles['sidebar_item'], id="nav-capital-risk"),
                 ])
             ], style=custom_styles['sidebar_section']),
             

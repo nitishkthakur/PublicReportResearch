@@ -523,10 +523,13 @@ app.clientside_callback(
      Input("nav-compare", "n_clicks"),
      Input("nav-revenue", "n_clicks"),
      Input("nav-eps", "n_clicks"),
-     Input("nav-download-data", "n_clicks")],
+     Input("nav-download-data", "n_clicks"),
+     Input("nav-net-income", "n_clicks"),
+     Input("nav-segment-performance", "n_clicks"),
+     Input("nav-capital-risk", "n_clicks")],
     prevent_initial_call=True
 )
-def handle_sidebar_navigation(kpi_clicks, compare_clicks, revenue_clicks, eps_clicks, download_data_clicks):
+def handle_sidebar_navigation(kpi_clicks, compare_clicks, revenue_clicks, eps_clicks, download_data_clicks, net_income_clicks, segment_clicks, capital_clicks):
     ctx = callback_context
     if not ctx.triggered:
         return dash.no_update
