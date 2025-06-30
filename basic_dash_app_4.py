@@ -22,7 +22,7 @@ except ImportError:
 import os
 from typing import List, Any
 import seaborn as sns
-
+from layout4 import get_layout, custom_styles
 
 ####### Read Data and set things up ########
 df = pd.read_excel("/home/nitish/Documents/github/PublicReportResearch/12_metrics.xlsx", sheet_name="Bank_Earnings_Data")
@@ -213,141 +213,26 @@ Follow the following steps:
 If the user asks to summarize the report of a particular company, quarter, then list out first, the top 20 metrics to analyze.
 """
 
-rag = RAG(llm_model="qwen2.5:7b", pre_prompt=pre_prompt)
+'''rag = RAG(llm_model="gemma3:4b-it-fp16")
 try:
     rag.load_vector_store(INDEX_DIR)
 except Exception:
     rag.build_vector_store(DOCS_DIR)
     rag.save_vector_store(INDEX_DIR)
-
+'''
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 WF_RED = "#D71921"
 WF_GOLD = "#FFCD41"
 WF_DARK_RED = "#B71C1C"
 
-custom_styles = {
-    'navbar': {
-        'backgroundColor': WF_RED,
-        'height': '70px',
-        'display': 'flex',
-        'alignItems': 'center',
-        'paddingLeft': '20px',
-        'paddingRight': '20px',
-        'boxShadow': '0 2px 4px rgba(0,0,0,0.1)'
-    },
-    'title': {
-        'color': 'white',
-        'fontSize': '28px',
-        'fontWeight': 'bold',
-        'margin': '0',
-        'fontFamily': 'Arial, sans-serif'
-    },
-    'chat_container': {
-        'height': '500px',
-        'overflowY': 'scroll',
-        'border': '1px solid #ddd',
-        'borderRadius': '8px',
-        'padding': '15px',
-        'backgroundColor': '#f8f9fa',
-        'marginBottom': '20px'
-    },
-    'user_message': {
-        'backgroundColor': WF_RED,
-        'color': 'white',
-        'padding': '10px 15px',
-        'borderRadius': '18px 18px 5px 18px',
-        'marginBottom': '10px',
-        'marginLeft': '20%',
-        'wordWrap': 'break-word'
-    },
-    'bot_message': {
-        'backgroundColor': 'white',
-        'color': '#333',
-        'padding': '10px 15px',
-        'borderRadius': '18px 18px 18px 5px',
-        'marginBottom': '10px',
-        'marginRight': '20%',
-        'border': f'1px solid {WF_RED}',
-        'wordWrap': 'break-word'
-    },
-    'input_container': {
-        'display': 'flex',
-        'gap': '10px',
-        'alignItems': 'center'
-    },
-    'text_input': {
-        'flex': '1',
-        'borderRadius': '25px',
-        'border': f'2px solid {WF_RED}',
-        'padding': '12px 20px',
-        'fontSize': '16px'
-    },
-    'submit_button': {
-        'backgroundColor': WF_RED,
-        'color': 'white',
-        'border': 'none',
-        'borderRadius': '25px',
-        'padding': '12px 25px',
-        'fontSize': '16px',
-        'fontWeight': 'bold',
-        'cursor': 'pointer',
-        'transition': 'all 0.3s ease'
-    }
-}
-
-app.layout = html.Div([
-    html.Div([
-        html.H1("Earnings Research", style=custom_styles['title'])
-    ], style=custom_styles['navbar']),
-
-    dbc.Container([
-        html.Br(),
-
-        html.Div(
-            id="chat-container",
-            children=[
-                html.Div([
-                    html.Strong("Assistant: "),
-                    "Hello! I'm your Earnings Research assistant. Ask me anything about financial data, earnings analysis, or request charts and reports."
-                ], style=custom_styles['bot_message'])
-            ],
-            style=custom_styles['chat_container']
-        ),
-
-        html.Div([
-            dcc.Input(
-                id="user-input",
-                type="text",
-                placeholder="Type your message here...",
-                style=custom_styles['text_input'],
-                n_submit=0
-            ),
-            html.Button(
-                "Send",
-                id="submit-button",
-                n_clicks=0,
-                style=custom_styles['submit_button']
-            ),
-            html.Button(
-                "Download PDF",
-                id="download-button",
-                n_clicks=0,
-                style=custom_styles['submit_button']
-            )
-        ], style=custom_styles['input_container']),
-
-        html.Br(),
-
-        dcc.Store(id="chat-history", data=[]),
-        dcc.Download(id="download-pdf")
-
-    ], fluid=True, style={'paddingTop': '20px', 'paddingBottom': '20px'})
-])
-
+app.layout = get_layout()
 
 def get_chatbot_response(user_message):
-    result = rag.invoke(user_message)
+
+
+    result = "<!DOCTYPE html><html> <h2> sample Response </h2> </html>"
+    #result = rag.invoke(user_message)
     idx = result.find("<!DOCTYPE html>")
     if idx != -1:
         result = result[idx:]
@@ -493,14 +378,59 @@ def generate_pdf(history):
      Output("user-input", "value"),
      Output("chat-history", "data")],
     [Input("submit-button", "n_clicks"),
-     Input("user-input", "n_submit")],
+     Input("user-input", "n_submit"),
+     Input("bank-citi", "n_clicks")],
     [State("user-input", "value"),
      State("chat-container", "children"),
      State("chat-history", "data")]
 )
-def update_chat(n_clicks, n_submit, user_input, chat_children, chat_history):
+def update_chat(n_clicks, n_submit, citi_clicks, user_input, chat_children, chat_history):
     ctx = callback_context
-    if not ctx.triggered or not user_input or user_input.strip() == "":
+    if not ctx.triggered:
+        return chat_children, "", chat_history
+    
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    
+    # Handle Citi bank button click
+    if trigger_id == "bank-citi" and citi_clicks > 0:
+        try:
+            # Load the HTML file
+            with open("Citi_Report.html", "r", encoding="utf-8") as file:
+                citi_html = file.read()
+            
+            # Create bot message with HTML content
+            bot_message_div = html.Div([
+                html.Strong("Assistant: "),
+                html.Br(),
+                html.Iframe(
+                    srcDoc=citi_html,
+                    style={'width': '100%', 'height': '600px', 'border': '1px solid #ddd', 'borderRadius': '8px'}
+                )
+            ], style=custom_styles['bot_message'])
+            
+            # Update chat history
+            store_bot = {
+                'type': 'bot',
+                'subtype': 'html',
+                'data': citi_html,
+                'timestamp': datetime.now().isoformat()
+            }
+            
+            new_history = chat_history + [store_bot]
+            updated_chat = chat_children + [bot_message_div]
+            
+            return updated_chat, "", new_history
+            
+        except FileNotFoundError:
+            error_message = html.Div([
+                html.Strong("Assistant: "),
+                html.Span("Sorry, the Citi report file could not be found.")
+            ], style=custom_styles['bot_message'])
+            
+            return chat_children + [error_message], "", chat_history
+    
+    # Handle regular chat input
+    if not user_input or user_input.strip() == "":
         return chat_children, "", chat_history
 
     user_message_div = html.Div([
@@ -585,6 +515,40 @@ app.clientside_callback(
     Output("chat-container", "style"),
     Input("chat-container", "children")
 )
+
+# Add callback for sidebar navigation
+@app.callback(
+    Output("chat-container", "children", allow_duplicate=True),
+    [Input("nav-kpi", "n_clicks"),
+     Input("nav-compare", "n_clicks"),
+     Input("nav-revenue", "n_clicks"),
+     Input("nav-eps", "n_clicks")],
+    prevent_initial_call=True
+)
+def handle_sidebar_navigation(kpi_clicks, compare_clicks, revenue_clicks, eps_clicks):
+    ctx = callback_context
+    if not ctx.triggered:
+        return dash.no_update
+    
+    # Return empty page for any sidebar click except chat
+    return [html.Div([
+        html.H3("Coming Soon", style={'textAlign': 'center', 'color': '#666', 'marginTop': '100px'}),
+        html.P("This feature is under development.", style={'textAlign': 'center', 'color': '#999'})
+    ])]
+
+# Add callback to reset chat when clicking on Chat navigation
+@app.callback(
+    Output("chat-container", "children", allow_duplicate=True),
+    Input("nav-chat", "n_clicks"),
+    prevent_initial_call=True
+)
+def reset_to_chat(chat_clicks):
+    if chat_clicks > 0:
+        return [html.Div([
+            html.Strong("Assistant: "),
+            "Hello! I'm your Earnings Research assistant. Ask me anything about financial data, earnings analysis, or request charts and reports."
+        ], style=custom_styles['bot_message'])]
+    return dash.no_update
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -100,7 +100,7 @@ class RAG:
 
     def load_vector_store(self, path: str = INDEX_DIR) -> None:
         """Load existing FAISS index and rebuild BM25 retriever from saved docs."""
-        self.vector_store = FAISS.load_local(path, self.embeddings)
+        self.vector_store = FAISS.load_local(path, self.embeddings, allow_dangerous_deserialization = True)
         docs = self.vector_store.documents
         self.bm25_retriever = BM25Retriever.from_documents(
             docs, k=self.bm25_k, bm25_params=self.bm25_params
