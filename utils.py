@@ -34,7 +34,7 @@ df = load_financial_excel()
 
 
 ####################################################
-######## Convert function to documentation #########
+######## Convert function to tool documentation #########
 ####################################################
 def function_to_tool(fn: Any) -> Dict[str, Any]:
     """
