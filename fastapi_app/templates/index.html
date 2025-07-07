@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earnings Research</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">Earnings Research</span>
+        </div>
+    </nav>
+
+    <div class="sidebar">
+        <h3>Navigation</h3>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Earnings Analysis</div>
+            <div class="sidebar-item" id="nav-chat">Chat</div>
+            <div class="sidebar-item" id="nav-kpi">KPI Overview</div>
+            <div class="sidebar-item" id="nav-compare">Compare Reports</div>
+            <div class="sidebar-item" id="nav-download-data">Download Data</div>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Metrics Analyser</div>
+            <div class="sidebar-item" id="nav-revenue">Revenue</div>
+            <div class="sidebar-item" id="nav-eps">Earnings Per Share</div>
+            <div class="sidebar-item" id="nav-net-income">Net Income</div>
+            <div class="sidebar-item" id="nav-segment-performance">Segment Performance</div>
+            <div class="sidebar-item" id="nav-capital-risk">Capital & Risk Metrics</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div id="chat-section">
+            <div class="container-fluid">
+                <br>
+                <div class="bank-selector-container">
+                    <div class="bank-selector-title">Select Bank for Earnings Report</div>
+                    <div class="bank-scroll-container">
+                        <button class="bank-button" id="bank-wfc">Wells Fargo</button>
+                        <button class="bank-button" id="bank-jpm">JPMorgan Chase</button>
+                        <button class="bank-button" id="bank-boa">Bank of America</button>
+                        <button class="bank-button" id="bank-citi">Citigroup</button>
+                        <button class="bank-button" id="bank-gs">Goldman Sachs</button>
+                        <button class="bank-button" id="bank-ms">Morgan Stanley</button>
+                        <button class="bank-button" id="bank-usb">U.S. Bancorp</button>
+                        <button class="bank-button" id="bank-pnc">PNC Financial</button>
+                        <button class="bank-button" id="bank-tfc">Truist Financial</button>
+                        <button class="bank-button" id="bank-schw">Charles Schwab</button>
+                    </div>
+                </div>
+
+                <div id="chat-container">
+                    <div class="bot-message">
+                        <strong>Assistant:</strong> Hello! I'm your Earnings Research assistant. Ask me anything about financial data, earnings analysis, or request charts and reports.
+                    </div>
+                </div>
+
+                <div class="input-container">
+                    <input type="text" id="user-input" class="form-control" placeholder="Type your message here...">
+                    <button id="submit-button" class="btn">Send</button>
+                    <button id="upload-button" class="btn">Upload</button>
+                    <button id="download-button" class="btn">Download PDF</button>
+                </div>
+            </div>
+        </div>
+        <div id="development-message">
+            <h3>Under Development</h3>
+            <p>This feature is currently under development.</p>
+        </div>
+        <div id="download-data-section" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Download Data</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="from-quarter" class="form-label">From Quarter</label>
+                            <select class="form-select" id="from-quarter">
+                                {% for quarter in quarter_list %}
+                                <option>{{ quarter }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="to-quarter" class="form-label">To Quarter</label>
+                            <select class="form-select" id="to-quarter">
+                                {% for quarter in quarter_list %}
+                                <option>{{ quarter }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Data Types</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="database" id="data-type-db">
+                                <label class="form-check-label" for="data-type-db">Database</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="earnings_report" id="data-type-er" checked>
+                                <label class="form-check-label" for="data-type-er">Earnings Report</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="call_transcript" id="data-type-ct">
+                                <label class="form-check-label" for="data-type-ct">Call Transcript</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="company-select" class="form-label">Companies</label>
+                            <select multiple class="form-select" id="company-select">
+                                <option>Wells Fargo</option>
+                                <option>JPMorgan Chase</option>
+                                <option>Bank of America</option>
+                                <option>Citigroup</option>
+                                <option>Goldman Sachs</option>
+                                <option>Morgan Stanley</option>
+                                <option>U.S. Bancorp</option>
+                                <option>PNC Financial</option>
+                                <option>Truist Financial</option>
+                                <option>Charles Schwab</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="download-data-button" class="btn mt-3">Download</button>
+                </div>
+            </div>
+        </div>
+        <div id="compare-reports-section" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Compare Reports</h3>
+                    <div class="mb-3">
+                        <label class="form-label">Comparison Mode</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="compare-mode" id="mode-single-company" value="single-company" checked>
+                            <label class="form-check-label" for="mode-single-company">Single Company, Multiple Quarters</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="compare-mode" id="mode-multiple-companies" value="multiple-companies">
+                            <label class="form-check-label" for="mode-multiple-companies">Multiple Companies, Single Quarter</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="compare-company-select" class="form-label">Company</label>
+                            <select class="form-select" id="compare-company-select">
+                                <option>Wells Fargo</option>
+                                <option>JPMorgan Chase</option>
+                                <option>Bank of America</option>
+                                <option>Citigroup</option>
+                                <option>Goldman Sachs</option>
+                                <option>Morgan Stanley</option>
+                                <option>U.S. Bancorp</option>
+                                <option>PNC Financial</option>
+                                <option>Truist Financial</option>
+                                <option>Charles Schwab</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="compare-from-quarter" class="form-label">From Quarter</label>
+                            <select class="form-select" id="compare-from-quarter">
+                                {% for quarter in quarter_list %}
+                                <option>{{ quarter }}</option>
+                                {% endfor %}
+                            </select>
+                            <div id="compare-to-quarter-container">
+                                <label for="compare-to-quarter" class="form-label mt-2">To Quarter</label>
+                                <select class="form-select" id="compare-to-quarter">
+                                    {% for quarter in quarter_list %}
+                                    <option>{{ quarter }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="compare-button" class="btn mt-3">Compare</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="reportModalLabel">Comparison Report</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="report-modal-body">
+            <!-- Report content will be injected here -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="download-report-pdf">Download PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
