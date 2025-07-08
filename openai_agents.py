@@ -16,13 +16,14 @@ class StructuredOutputAgent:
         Args:
             api_key: OpenAI API key. If None, will use environment variable.
         """
+        print(api_key)
         self.client = OpenAI(api_key=api_key)
     
     def chat(
         self, 
         message: str, 
         schema: Type[T], 
-        model: str = "gpt-4o-2024-08-06",
+        model: str = "gpt-4.1-mini",
         system_prompt: Optional[str] = None,
         temperature: float = 0.0
     ) -> Union[T, str]:
@@ -59,7 +60,7 @@ class StructuredOutputAgent:
                 return completion.choices[0].message.refusal
             
             # Return parsed structured output
-            return completion.choices[0].message.parsed
+            return completion.choices[0].message.parsed.model_dump_json()
             
         except Exception as e:
             raise Exception(f"Error generating structured output: {str(e)}")
