@@ -253,6 +253,21 @@ function nextMonth() {
     renderCalendar();
 }
 
+function previousYear() {
+    currentDate.setFullYear(currentDate.getFullYear() - 1);
+    renderCalendar();
+}
+
+function nextYear() {
+    currentDate.setFullYear(currentDate.getFullYear() + 1);
+    renderCalendar();
+}
+
+function changeYear(year) {
+    currentDate.setFullYear(parseInt(year));
+    renderCalendar();
+}
+
 // Render calendar
 function renderCalendar() {
     const monthNames = [

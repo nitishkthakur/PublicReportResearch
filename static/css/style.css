@@ -454,6 +454,8 @@ body {
     .calendar-controls {
         flex-direction: row;
         justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
     }
     
     .calendar-grid {
@@ -688,8 +690,8 @@ iframe {
 }
 
 .calendar-day.earnings-day {
-    background-color: var(--light-red);
-    border: 2px solid var(--pleasant-red);
+    background-color: transparent;
+    border: 1px solid var(--pleasant-red);
 }
 
 .calendar-day.earnings-day::after {
