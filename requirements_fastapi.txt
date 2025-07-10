@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+pandas
+numpy
+matplotlib
+seaborn
+openpyxl
+reportlab
+xhtml2pdf
+aiofiles

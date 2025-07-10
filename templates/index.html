@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earnings Research</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=1.1">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <h1 class="navbar-title">Earnings Research</h1>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <h3 class="sidebar-header">Navigation</h3>
+        
+        <!-- Quick Actions Section -->
+        <div class="quick-actions-section">
+            <div class="quick-actions-title">Quick Actions</div>
+            <div class="quick-actions-item earnings-calendar-item" onclick="showEarningsCalendar()">
+                Earnings Calendar
+            </div>
+        </div>
+        
+        <!-- Earnings Analysis Section -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Earnings Analysis</div>
+            <div class="sidebar-item" onclick="showChatSection(); resetChat()">Chat</div>
+            <div class="sidebar-item" onclick="showComingSoon()">KPI Overview</div>
+            <div class="sidebar-item" onclick="showComingSoon()">Compare Reports</div>
+            <div class="sidebar-item" onclick="showComingSoon()">Download Data</div>
+        </div>
+        
+        <!-- Metrics Analyser Section -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Metrics Analyser</div>
+            <div class="sidebar-item" onclick="showComingSoon()">Revenue</div>
+            <div class="sidebar-item" onclick="showComingSoon()">Earnings Per Share</div>
+            <div class="sidebar-item" onclick="showComingSoon()">Net Income</div>
+            <div class="sidebar-item" onclick="showComingSoon()">Segment Performance</div>
+            <div class="sidebar-item" onclick="showComingSoon()">Capital & Risk Metrics</div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            
+            <!-- Earnings Calendar Container (Initially Hidden) -->
+            <div id="earnings-calendar-container" class="earnings-calendar-container" style="display: none;">
+                <div class="calendar-header">
+                    <h2>Earnings Calendar</h2>
+                    <div class="calendar-controls">
+                        <button class="calendar-nav-btn" onclick="previousMonth()">‹</button>
+                        <span id="current-month-year"></span>
+                        <button class="calendar-nav-btn" onclick="nextMonth()">›</button>
+                    </div>
+                </div>
+                <div class="calendar-grid" id="calendar-grid"></div>
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <div class="legend-color earnings-day"></div>
+                        <span>Earnings Announcement</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color no-earnings"></div>
+                        <span>No Earnings</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Container (Initially Visible) -->
+            <div id="chat-section" class="chat-section">
+                <!-- Bank Selector Section -->
+                <div class="bank-selector-container">
+                    <div class="bank-selector-title">Select Bank for Earnings Report</div>
+                    <div class="bank-scroll-container">
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "Wells Fargo"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">Wells Fargo</button>
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "JPMorgan Chase"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">JPMorgan Chase</button>
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "Bank of America"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">Bank of America</button>
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "Citigroup"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">Citigroup</button>
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "Goldman Sachs"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">Goldman Sachs</button>
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "Morgan Stanley"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">Morgan Stanley</button>
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "U.S. Bancorp"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">U.S. Bancorp</button>
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "PNC Financial"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">PNC Financial</button>
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "Truist Financial"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">Truist Financial</button>
+                    <button class="bank-button" 
+                            hx-post="/bank-select" 
+                            hx-vals='{"bank": "Charles Schwab"}'
+                            hx-target="#chat-container" 
+                            hx-swap="beforeend">Charles Schwab</button>
+                </div>
+            </div>
+
+            <!-- Chat Container -->
+            <div id="chat-container" class="chat-container">
+                <div class="bot-message">
+                    <strong>Assistant:</strong> Hello! I'm your Earnings Research assistant. Ask me anything about financial data, earnings analysis, or request charts and reports.
+                </div>
+            </div>
+
+            <!-- Input Container -->
+            <div class="input-container">
+                <form hx-post="/chat" hx-target="#chat-container" hx-swap="beforeend" hx-on::after-request="this.reset(); scrollToBottom();">
+                    <input type="text" name="message" class="text-input" placeholder="Type your message here..." required>
+                    <button type="submit" class="submit-button">Send</button>
+                </form>
+                
+                <button class="submit-button" onclick="document.getElementById('file-upload').click();">Upload</button>
+                <input type="file" id="file-upload" style="display: none;" 
+                       hx-post="/upload" 
+                       hx-encoding="multipart/form-data"
+                       hx-target="#chat-container" 
+                       hx-swap="beforeend">
+                
+                <a href="/download-pdf" class="submit-button download-link">Download PDF</a>
+            </div>
+
+            </div> <!-- End of chat-section -->
+
+        </div>
+    </main>
+
+    <script src="/static/js/script.js"></script>
+</body>
+</html>
