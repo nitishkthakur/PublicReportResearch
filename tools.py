@@ -9,12 +9,23 @@ import difflib
 ########################################################################
 df = None
 
+def get_available_metrics():
+    return df.columns.tolist()
+
+# decorator to apply to a function which returns a dataframe to make it return a json object
+def to_json(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs).to_json()
+    return wrapper
+
+@to_json
 def filter_by_quarter(company: str, quarter: str) -> pd.DataFrame:
     """
     Return rows for a given company and quarter.
     """
     return df[(df['company'] == company) & (df['Quarter'] == quarter)]
 
+@to_json
 def compare_companies(
     data: pd.DataFrame,
     companies: List[str],
@@ -56,6 +67,7 @@ def compare_companies(
     result_columns = ['Company', 'date'] + mapped_metrics
     return filtered_df[result_columns]
 
+@to_json
 def compare_within_one_company(
     data: pd.DataFrame,
     company: str,

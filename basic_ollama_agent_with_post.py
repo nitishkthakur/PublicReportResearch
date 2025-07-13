@@ -186,7 +186,65 @@ class OllamaAgent:
                 'tool_calls': [],
                 'structured_output': None
             }
-
+        
+    def invoke_plus_next_call(self, first_prompt: str, second_prompt: str, overall_task_prompt: str) -> Dict[str, Any]:
+        """
+        Perform a two-step invoke process where the output of the first call is used as input for the second call.
+        
+        Args:
+            first_prompt: The initial prompt to send to the first invoke call
+            second_prompt: The prompt to send in the second invoke call
+            overall_task_prompt: The overall task context that frames the entire conversation
+            
+        Returns:
+            Dictionary containing the final response and results from both calls
+        """
+        try:
+            # First invoke call (with tools enabled)
+            first_result = self.invoke(first_prompt)
+            
+            if 'error' in first_result:
+                return {
+                    'error': f"First invoke call failed: {first_result['error']}",
+                    'first_result': first_result,
+                    'second_result': None
+                }
+            
+            # Get the output from the first call
+            first_output = first_result.get('tool_calls', '')
+            
+            # Construct the input for the second invoke call
+            second_invoke_input = (
+                f"{overall_task_prompt}\n"
+                f"<user>{first_prompt}</user>\n"
+                f"<assistant>Output of first LLM Call: {first_output}</assistant>\n"
+                f"<user>{second_prompt}</user>"
+            )
+            
+            # Second invoke call (without tools)
+            # Temporarily disable tools for the second call
+            original_tool_schemas = self.tool_schemas
+            self.tool_schemas = []
+            
+            try:
+                second_result = self.invoke(second_invoke_input)
+            finally:
+                # Restore original tool schemas
+                self.tool_schemas = original_tool_schemas
+            
+            return {
+                'first_result': first_result,
+                'second_result': second_result,
+                'combined_input': second_invoke_input,
+                'final_message': second_result.get('message') if 'error' not in second_result else second_result.get('error')
+            }
+            
+        except Exception as e:
+            return {
+                'error': f"Failed in invoke_plus_next_call: {str(e)}",
+                'first_result': None,
+                'second_result': None
+            }
 
 # Example usage:
 if __name__ == "__main__":
@@ -207,6 +265,28 @@ if __name__ == "__main__":
         """
         return a + b
     
+    def calculate_weather(location: str) -> Dict[str, Any]:
+        """
+        Fetches weather information for a given location.
+        
+        Args:
+            location: Name of the location to get weather for
+            
+        Returns:
+            Dictionary with weather details
+        """
+        # Simulated response, replace with actual API call if needed
+        if location.lower() == "india":
+            temperature = 35
+        else:
+            temperature = 20
+        return {
+            "location": location,
+            "temperature": temperature,
+            "units": "Celsius",
+            "description": "Sunny"
+        }
+    
     # Example output schema
     class WeatherResponse(BaseModel):
         location: str
@@ -216,16 +296,19 @@ if __name__ == "__main__":
     
     # Create agent
     agent = OllamaAgent(
-        model_name="llama3.2:1b",
-        tools=[get_product, calculate_sum],
+        model_name="qwen2.5:7b",
+        tools=[get_product, calculate_sum, calculate_weather],
         output_schema=None
     )
     
-    # Use agent
+    # Use agent - on one call
     result = agent.invoke("What's the Sum of 11 and 22? Also, what's the product of 11 and 22?")
+    #print(result)
+    
+    # Use agent - on two step process
+    result = agent.invoke_plus_next_call(first_prompt = "What's the Sum of 11 and 22? Also, what's the product of 11 and 26? and let me know the weather in india",
+                                         second_prompt="Now, write the final answer to the user questions based on the above conversation",
+                                         overall_task_prompt="You are a helpful assistant that provides answers based on user queries based on only the conversation to follow. If any information you need is not present in the following conversation, you mention so")
     print(result)
-
-
-
-    # 2 step process - Lite report
+    
     

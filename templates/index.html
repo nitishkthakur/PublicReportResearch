@@ -17,8 +17,8 @@
     <aside class="sidebar">
         <h3 class="sidebar-header">Navigation</h3>
         
-        <!-- Quick Actions Section -->
-        <div class="quick-actions-section">
+        <!-- Quick Actions Section (Hidden) -->
+        <div class="quick-actions-section" style="display: none;">
             <div class="quick-actions-title">Quick Actions</div>
             <div class="quick-actions-item earnings-calendar-item" onclick="showEarningsCalendar()">
                 Earnings Calendar
@@ -48,31 +48,6 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="container">
-            
-            <!-- Earnings Calendar Container (Initially Hidden) -->
-            <div id="earnings-calendar-container" class="earnings-calendar-container" style="display: none;">
-                <div class="calendar-header">
-                    <h2>Earnings Calendar</h2>
-                    <div class="calendar-controls">
-                        <button class="calendar-nav-btn" onclick="previousYear()">«</button>
-                        <button class="calendar-nav-btn" onclick="previousMonth()">‹</button>
-                        <span id="current-month-year"></span>
-                        <button class="calendar-nav-btn" onclick="nextMonth()">›</button>
-                        <button class="calendar-nav-btn" onclick="nextYear()">»</button>
-                    </div>
-                </div>
-                <div class="calendar-grid" id="calendar-grid"></div>
-                <div class="calendar-legend">
-                    <div class="legend-item">
-                        <div class="legend-color earnings-day"></div>
-                        <span>Earnings Announcement</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color no-earnings"></div>
-                        <span>No Earnings</span>
-                    </div>
-                </div>
-            </div>
             
             <!-- Chat Container (Initially Visible) -->
             <div id="chat-section" class="chat-section">

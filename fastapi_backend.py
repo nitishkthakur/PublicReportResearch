@@ -15,6 +15,10 @@ import seaborn as sns
 from datetime import datetime
 import json
 import os
+import logging
+from tools import *
+
+
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
@@ -23,6 +27,10 @@ try:
     from xhtml2pdf import pisa
 except ImportError:
     pisa = None
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(title="Earnings Research API", version="1.0.0")
@@ -337,6 +345,7 @@ async def download_pdf():
 @app.post("/upload", response_class=HTMLResponse)
 async def handle_upload(request: Request, file: UploadFile = File(...)):
     """Handle file upload."""
+    logging.info("Upload Initiated")
     return HTMLResponse(content='''
     <div class="bot-message">
         <strong>Assistant:</strong> Upload functionality is under development. This feature will allow you to upload files for analysis.
