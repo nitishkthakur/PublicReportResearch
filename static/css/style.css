@@ -7,6 +7,14 @@
     --border-gray: #e0e6ed;
     --text-gray: #495057;
     --white: #ffffff;
+    
+    /* Layout Variables */
+    --navbar-height: 70px;
+    --main-padding-top: 90px;
+    --main-padding-bottom: 20px;
+    --bank-selector-height: 85px;
+    --input-container-height: 65px;
+    --chat-margin-bottom: 20px;
 }
 
 /* Reset and Base Styles */
@@ -168,6 +176,50 @@ body {
     min-height: 100vh;
 }
 
+/* Fullscreen Chat Mode */
+.main-content.fullscreen-chat {
+    margin-left: 0;
+    padding: 20px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 999;
+    background-color: var(--light-gray);
+}
+
+.main-content.fullscreen-chat .container {
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+.main-content.fullscreen-chat .chat-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.main-content.fullscreen-chat .chat-container {
+    flex: 1;
+    height: calc(100vh - var(--bank-selector-height) - var(--input-container-height) - var(--chat-margin-bottom) - 40px);
+    margin-bottom: var(--chat-margin-bottom);
+}
+
+.main-content.fullscreen-chat .bank-selector-container {
+    flex-shrink: 0;
+}
+
+.main-content.fullscreen-chat .input-container {
+    flex-shrink: 0;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -238,13 +290,13 @@ body {
 
 /* Chat Container */
 .chat-container {
-    height: 500px;
+    height: calc(100vh - var(--navbar-height) - var(--main-padding-top) - var(--main-padding-bottom) - var(--bank-selector-height) - var(--input-container-height) - var(--chat-margin-bottom));
     overflow-y: auto;
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 15px;
     background-color: var(--light-gray);
-    margin-bottom: 20px;
+    margin-bottom: var(--chat-margin-bottom);
     scroll-behavior: smooth;
 }
 
@@ -407,6 +459,11 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    :root {
+        --bank-selector-height: 75px;
+        --input-container-height: 60px;
+    }
+    
     .sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
@@ -419,6 +476,10 @@ body {
     .main-content {
         margin-left: 0;
         padding: 90px 10px 20px 10px;
+    }
+    
+    .main-content.fullscreen-chat {
+        padding: 10px;
     }
     
     .bank-scroll-container {

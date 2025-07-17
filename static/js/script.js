@@ -174,6 +174,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set initial active state (chat is active by default)
     updateActiveNavItem('chat');
+    
+    // Add fullscreen button
+    addFullscreenButton();
 });
 
 // Earnings Calendar Variables
@@ -241,6 +244,64 @@ function resetChat() {
     `;
     scrollToBottom();
 }
+
+// Fullscreen chat functionality
+let isFullscreen = false;
+
+function toggleFullscreenChat() {
+    const mainContent = document.querySelector('.main-content');
+    const sidebar = document.querySelector('.sidebar');
+    const navbar = document.querySelector('.navbar');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    
+    isFullscreen = !isFullscreen;
+    
+    if (isFullscreen) {
+        // Enter fullscreen mode
+        mainContent.classList.add('fullscreen-chat');
+        sidebar.style.display = 'none';
+        navbar.style.display = 'none';
+        fullscreenBtn.innerHTML = '🗗'; // Exit fullscreen icon
+        fullscreenBtn.title = 'Exit Fullscreen';
+    } else {
+        // Exit fullscreen mode
+        mainContent.classList.remove('fullscreen-chat');
+        sidebar.style.display = 'block';
+        navbar.style.display = 'flex';
+        fullscreenBtn.innerHTML = '🗖'; // Fullscreen icon
+        fullscreenBtn.title = 'Enter Fullscreen';
+    }
+    
+    // Scroll to bottom after layout change
+    setTimeout(scrollToBottom, 100);
+}
+
+// Add fullscreen toggle button
+function addFullscreenButton() {
+    const inputContainer = document.querySelector('.input-container');
+    if (inputContainer && !document.getElementById('fullscreen-btn')) {
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.id = 'fullscreen-btn';
+        fullscreenBtn.type = 'button';
+        fullscreenBtn.className = 'submit-button';
+        fullscreenBtn.innerHTML = '🗖'; // Fullscreen icon
+        fullscreenBtn.title = 'Enter Fullscreen';
+        fullscreenBtn.onclick = toggleFullscreenChat;
+        fullscreenBtn.style.minWidth = '50px';
+        fullscreenBtn.style.padding = '12px 15px';
+        
+        // Insert before the download button
+        const downloadLink = inputContainer.querySelector('.download-link');
+        inputContainer.insertBefore(fullscreenBtn, downloadLink);
+    }
+}
+
+// Handle ESC key to exit fullscreen
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && isFullscreen) {
+        toggleFullscreenChat();
+    }
+});
 
 // Calendar navigation
 function previousMonth() {
