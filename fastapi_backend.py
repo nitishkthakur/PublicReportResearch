@@ -18,7 +18,7 @@ import os
 import logging
 from tools import *
 from basic_ollama_agent_with_post import OllamaAgent
-
+from basic_openai_agent import OpenAIAgent
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
@@ -89,16 +89,36 @@ class ChatResponse(BaseModel):
 tools_list = [financial_tools.compare_companies_metric, financial_tools.get_metric_trends, 
               financial_tools.get_metric_for_company_quarter_year]
 
-# Utility functions from original app
 class FinancialRAGAgent:
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, agent_provider: str = "openai"):
+        """
+        Initialize the Financial RAG Agent.
+        
+        Args:
+####### Read Data and set things up ########
+try:
+            model_name: Name of the model to use
+            agent_provider: Either "openai" or "ollama" to specify which agent to use
+        """
         self.model_name = model_name
+        self.agent_provider = agent_provider.lower()
         self.df = financial_tools.df
-        self.agent = OllamaAgent(
-            model_name=self.model_name,
-            tools=tools_list,
-            output_schema=None
-        )
+        
+        # Initialize the appropriate agent based on provider
+        if self.agent_provider == "openai":
+            self.agent = OpenAIAgent(
+                model_name=self.model_name,
+                tools=tools_list,
+                output_schema=None
+            )
+        elif self.agent_provider == "ollama":
+            self.agent = OllamaAgent(
+                model_name=self.model_name,
+                tools=tools_list,
+                output_schema=None
+            )
+        else:
+            raise ValueError(f"Unsupported agent provider: {agent_provider}. Choose 'openai' or 'ollama'.")
 
     def run_question(self, question: str):
         role = "You are an expert Earnings Data Extractor and Analyzer. "
@@ -114,7 +134,7 @@ class FinancialRAGAgent:
             "You will be provided with the conversation to follow which might consist of answers from a tool call. "
             "If any information you need is not present in the following conversation, you mention so."
         )
-        second_prompt = "Now, write the final answer to the user questions based on the above conversation"
+        second_prompt = "Now, write the final answer to the user questions in html format based on the above conversation"
 
         result = self.agent.invoke_plus_next_call(
             first_prompt=first_prompt,
@@ -126,8 +146,7 @@ class FinancialRAGAgent:
 def get_chatbot_response(user_message: str):
     """Get response from chatbot - currently returns sample response."""
     try:
-        agent = FinancialRAGAgent(model_name="qwen3:8b-q8_0")
-        question = "Compare Citi and Wells Fargo on some important metrics for the last few years. Prepare a report for the same"
+        agent = FinancialRAGAgent(model_name="gpt-4.1-mini", agent_provider="openai")
         result = agent.run_question(user_message)
         print(result, "\n\n\n\n")
         print(result.get("final_message", "No final answer found."))
@@ -367,4 +386,5 @@ async def get_earnings_data():
 
 if __name__ == "__main__":
     import uvicorn
+    uvicorn.run("fastapi_backend:app", host="0.0.0.0", port=8000, reload=True)
     uvicorn.run("fastapi_backend:app", host="0.0.0.0", port=8000, reload=True)

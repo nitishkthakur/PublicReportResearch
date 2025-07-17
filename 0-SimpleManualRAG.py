@@ -1,5 +1,7 @@
 from basic_ollama_agent_with_post import OllamaAgent
 from excel_rag import FinancialDataTools
+from basic_openai_agent import OpenAIAgent
+
 
 financial_tools = FinancialDataTools("12_metrics.xlsx")
 financial_tools.load_data()
@@ -31,14 +33,33 @@ tools_list = [financial_tools.compare_companies_metric, financial_tools.get_metr
               financial_tools.get_metric_for_company_quarter_year]
 
 class FinancialRAGAgent:
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, agent_provider: str = "openai"):
+        """
+        Initialize the Financial RAG Agent.
+        
+        Args:
+            model_name: Name of the model to use
+            agent_provider: Either "openai" or "ollama" to specify which agent to use
+        """
         self.model_name = model_name
+        self.agent_provider = agent_provider.lower()
         self.df = financial_tools.df
-        self.agent = OllamaAgent(
-            model_name=self.model_name,
-            tools=tools_list,
-            output_schema=None
-        )
+        
+        # Initialize the appropriate agent based on provider
+        if self.agent_provider == "openai":
+            self.agent = OpenAIAgent(
+                model_name=self.model_name,
+                tools=tools_list,
+                output_schema=None
+            )
+        elif self.agent_provider == "ollama":
+            self.agent = OllamaAgent(
+                model_name=self.model_name,
+                tools=tools_list,
+                output_schema=None
+            )
+        else:
+            raise ValueError(f"Unsupported agent provider: {agent_provider}. Choose 'openai' or 'ollama'.")
 
     def run_question(self, question: str):
         role = "You are an expert Earnings Data Extractor and Analyzer. "
@@ -65,11 +86,43 @@ class FinancialRAGAgent:
 
 
 if __name__ == "__main__":
-    agent = FinancialRAGAgent(model_name="qwen3:8b-q8_0")
-    question = "Compare Citi and Wells Fargo on some important metrics for the last few years. Prepare a report for the same"
+    # Configuration - Define your preferred agent provider and model here
+    agent_provider = "openai"  # Choose: "openai" or "ollama"
+    
+    # Model selection based on provider
+    if agent_provider == "openai":
+        model_name = "gpt-4o-mini"  # Options: "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"
+    else:  # ollama
+        model_name = "qwen3:8b-q8_0"  # Options: "qwen3:8b-q8_0", "llama3:8b", "gemma2:9b"
+    
+    print(f"Using {agent_provider.upper()} agent with model: {model_name}")
+    
+    # Initialize the agent
+    agent = FinancialRAGAgent(model_name=model_name, agent_provider=agent_provider)
+    
+    # Get user question
+    print("\nExample questions:")
+    print("- Compare Citi and Wells Fargo on some important metrics for the last few years")
+    print("- What was JPMorgan Chase's revenue trend over the last 5 years?")
+    print("- Show me Bank of America's total assets for Q1 2023")
+    
+    question = input("\nEnter your financial data question: ").strip()
+    if not question:
+        question = "Compare Citi and Wells Fargo on some important metrics for the last few years. Prepare a report for the same"
+        print(f"Using default question: {question}")
+    
+    print(f"\nProcessing your question using {agent_provider.upper()} agent...")
     result = agent.run_question(question)
-    print(result, "\n\n\n\n")
+    
+    print("\n" + "="*80)
+    print("FINAL ANSWER:")
+    print("="*80)
     print(result.get("final_message", "No final answer found."))
+    
+    print("\n" + "="*80)
+    print("DETAILED RESULT:")
+    print("="*80)
+    print(result)
 
     '''# Use agent on 2 calls
     # Constructing the first prompt
