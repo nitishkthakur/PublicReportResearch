@@ -30,8 +30,8 @@ def load_financial_excel(sheet_name: str = None) -> pd.DataFrame:
     return df
 
 # single DataFrame for all tools
-df = load_financial_excel()
-
+#df = load_financial_excel()
+df = None
 
 ####################################################
 ######## Convert function to tool documentation #########
@@ -106,23 +106,6 @@ def function_to_tool(fn: Any) -> Dict[str, Any]:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def concatenate_pdfs_in_folder(folder_path: str) -> BytesIO:
     """
     Reads all PDF files in the given folder, concatenates them, and returns a BytesIO object.
@@ -147,3 +130,63 @@ def concatenate_pdfs_in_folder(folder_path: str) -> BytesIO:
     pdf_writer.write(output_stream)
     output_stream.seek(0)
     return output_stream
+
+
+def undo_sec_quarterly_cumulative(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Given a DataFrame with a 'Datetime' column (quarter end), adds a 'Quarter' column (e.g., '1Q2025')
+    as the first column, and for columns[3:], undoes SEC-style year-to-date cumulative values (resets at new year).
+    Args:
+        df: DataFrame with 'Datetime' column and cumulative data in columns[3:].
+    Returns:
+        DataFrame with 'Quarter' as first column and de-cumulated quarterly values.
+    """
+    dt = pd.to_datetime(df['Datetime'])
+    df = df.copy()
+    df['Quarter'] = dt.dt.quarter.astype(str) + 'Q' + dt.dt.year.astype(str)
+
+    # Reorder columns to make 'Quarter' the first column
+    cols = df.columns.tolist()
+    cols.insert(0, cols.pop(cols.index('Quarter')))
+    df = df[cols]
+
+    # Undo cumulative for columns[3:]
+    metric_cols = df.columns[3:]
+    df = df.sort_values('Datetime')
+    for col in metric_cols:
+        df[col] = df.groupby(dt.dt.year)[col].diff().fillna(df[col])
+    return df
+
+
+def process_sec_quarterly_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Given a DataFrame with a 'Datetime' column (quarter end), adds a 'Quarter' column (e.g., '1Q2025'),
+    and for columns[3:], undoes SEC-style year-to-date cumulative values (resets at new year).
+    Q1 stays as-is, Q2 becomes Q2-Q1, Q3 becomes Q3-Q2, Q4 becomes Q4-Q3.
+    Args:
+        df: DataFrame with 'Datetime' column and cumulative data in columns[3:].
+    Returns:
+        DataFrame with 'Quarter' as first column and de-cumulated quarterly values.
+    """
+    dt = pd.to_datetime(df['Datetime'])
+    df = df.copy()
+    df['Quarter'] = dt.dt.quarter.astype(str) + 'Q' + dt.dt.year.astype(str)
+
+    # Reorder columns to make 'Quarter' the first column
+    cols = df.columns.tolist()
+    cols.insert(0, cols.pop(cols.index('Quarter')))
+    df = df[cols]
+
+    # Undo cumulative for columns[3:]
+    metric_cols = df.columns[3:]
+    df = df.sort_values('Datetime')
+    for col in metric_cols:
+        # Group by year and quarter, then diff within each year
+        df[col] = df.groupby(dt.dt.year)[col].diff()
+        # Fill Q1 values (first quarter of each year) with original values
+        q1_mask = dt.dt.quarter == 1
+        df.loc[q1_mask, col] = df.groupby(dt.dt.year)[col].transform('first')
+    return df
+
+
+

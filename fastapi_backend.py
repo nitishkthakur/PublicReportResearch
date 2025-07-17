@@ -25,6 +25,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from excel_rag import FinancialDataTools
+from utils import undo_sec_quarterly_cumulative, process_sec_quarterly_data
 try:
     from xhtml2pdf import pisa
 except ImportError:
@@ -81,13 +82,13 @@ try:
 
 
     financial_tools.df['CompanyName'] = financial_tools.df['CompanyName'].replace(bank_name_mapping)
-
+    financial_tools.df = process_sec_quarterly_data(financial_tools.df)
     tools_list = [financial_tools.compare_companies_metric, financial_tools.get_metric_trends, 
                 financial_tools.get_metric_for_company_quarter_year]
 
     # Model selection based on provider
     if agent_provider == "openai":
-        model_name = "gpt-4.1-mini"  # Options: "gpt-4.1-mini", "gpt-4.1"
+        model_name = "gpt-4.1-mini"  # Options: "gpt-4.1-mini", "gpt-4.1", "o4-mini"
     else:  # ollama
         model_name = "qwen3:8b-q8_0"  # Options: "qwen3:8b-q8_0", "llama3:8b", "gemma2:9b"
 
@@ -121,7 +122,7 @@ def get_chatbot_response(user_message: str):
         #print(result, "\n\n\n\n")
         #print(result.get("final_message", "No final answer found."))
         #result = result.get("final_message", "No final answer found.")
-        result = agent.run_question(user_message)
+        result = agent.run_question(user_message).get('final_message', "No final answer found.")
 
     except:
 

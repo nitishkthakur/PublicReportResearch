@@ -495,7 +495,7 @@ class FinancialRAGAgent:
             "You will be provided with the conversation to follow which might consist of answers from a tool call. "
             "If any information you need is not present in the following conversation, you mention so."
         )
-        second_prompt = "Now, write the final answer to the user questions based on the above conversation"
+        second_prompt = "Now, write the final answer to the user questions based on the above conversation in html format. use necessary html tags for tables too. Use red or light colors for the primry colrs in the html. make an interactive plot if required too from the data"
 
         result = self.agent.invoke_plus_next_call(
             first_prompt=first_prompt,
