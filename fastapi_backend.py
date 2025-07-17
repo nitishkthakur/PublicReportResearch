@@ -17,12 +17,13 @@ import json
 import os
 import logging
 from tools import *
-
+from basic_ollama_agent_with_post import OllamaAgent
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
+from excel_rag import FinancialDataTools
 try:
     from xhtml2pdf import pisa
 except ImportError:
@@ -46,10 +47,9 @@ chat_history = []
 
 ####### Read Data and set things up ########
 try:
-    df = pd.read_excel("/home/nitish/Documents/github/PublicReportResearch/12_metrics.xlsx", sheet_name="Bank_Earnings_Data")
-    
-    bank_name_mapping = {
-        'AMERICAN EXPRESS COMPANY': 'American Express',
+    financial_tools = FinancialDataTools("12_metrics.xlsx")
+    financial_tools.load_data()
+    bank_name_mapping = {'AMERICAN EXPRESS COMPANY': 'American Express',
         'Bank of America Corporation': 'Bank of America',
         'CAPITAL\xa0ONE\xa0FINANCIAL\xa0CORP': 'Capital One',
         'Citigroup\xa0Inc': 'Citi',
@@ -68,9 +68,11 @@ try:
         'The Goldman Sachs Group, Inc.': 'Goldman Sachs',
         'US BANCORP \\DE\\': 'US Bancorp',
         'WELLS FARGO & COMPANY/MN': 'Wells Fargo'
+
     }
-    
-    df['CompanyName'] = df['CompanyName'].replace(bank_name_mapping)
+
+    financial_tools.df['CompanyName'] = financial_tools.df['CompanyName'].replace(bank_name_mapping)
+
     DATA_LOADED = True
 except Exception as e:
     print(f"Error loading data: {e}")
@@ -84,95 +86,55 @@ class ChatResponse(BaseModel):
     response: str
     response_type: str
     data: Optional[Dict[str, Any]] = None
+tools_list = [financial_tools.compare_companies_metric, financial_tools.get_metric_trends, 
+              financial_tools.get_metric_for_company_quarter_year]
 
 # Utility functions from original app
-def compare_metrics_latest(company_names: str, metric: str, quarters: List[str] = None):
-    """Compare latest values of a specified metric for a list of companies."""
-    if not DATA_LOADED:
-        raise HTTPException(status_code=500, detail="Data not loaded")
-    
-    if isinstance(company_names, str):
-        company_names = [name.strip() for name in company_names.split(',')]
-    
-    latest_date = df['Datetime'].max()
-    latest_data = df[df['Datetime'] == latest_date]
-    latest_data = latest_data[latest_data['CompanyName'].isin(company_names)]
+class FinancialRAGAgent:
+    def __init__(self, model_name: str):
+        self.model_name = model_name
+        self.df = financial_tools.df
+        self.agent = OllamaAgent(
+            model_name=self.model_name,
+            tools=tools_list,
+            output_schema=None
+        )
 
-    if metric not in latest_data.columns:
-        raise ValueError(f"Metric '{metric}' not found in the data.")
-    
-    metric_data = latest_data[['CompanyName', metric]].set_index('CompanyName')
-    return metric_data.reset_index()
+    def run_question(self, question: str):
+        role = "You are an expert Earnings Data Extractor and Analyzer. "
+        task = "Call the appropriate functions to extract the earnings data from the DataFrame and analyze it for the companies mentioned.\n"
+        context_company_names = (
+            "\nWhen the user asks to search for a company, try to map their mentioned name to a list of pre-defined companies. "
+            "The allowed company names are as follows :" + f"{', '.join(self.df['CompanyName'].unique().tolist())}" + "\n"
+        )
+        Context = "\nHere are the metrics present in the data:" + f"{', '.join(self.df.columns.tolist()[2:])}" + ""
+        first_prompt = role + task + context_company_names + Context + question
+        overall_prompt = (
+            "You are a helpful assistant that provides answers based on user queries. "
+            "You will be provided with the conversation to follow which might consist of answers from a tool call. "
+            "If any information you need is not present in the following conversation, you mention so."
+        )
+        second_prompt = "Now, write the final answer to the user questions based on the above conversation"
 
-def plot_metrics_comparison_latest(company_names: str, metric: str):
-    """Plot latest values of a specified metric for a list of companies."""
-    if not DATA_LOADED:
-        raise HTTPException(status_code=500, detail="Data not loaded")
-    
-    if isinstance(company_names, str):
-        company_names = [name.strip() for name in company_names.split(',')]
-    
-    latest_date = df['Datetime'].max()
-    latest_data = df[df['Datetime'] == latest_date]
-    latest_data = latest_data[latest_data['CompanyName'].isin(company_names)]
-
-    if metric not in latest_data.columns:
-        raise ValueError(f"Metric '{metric}' not found in the data.")
-    
-    metric_data = latest_data[['CompanyName', metric]].set_index('CompanyName')
-    metric_data = metric_data.sort_values(by=metric, ascending=False)
-    
-    plt.figure(figsize=(10, 6))
-    sns.barplot(x=metric_data.index, y=metric_data[metric], palette='viridis')
-    plt.title(f'Latest {metric} Comparison for Companies')
-    plt.xlabel('Company Name')
-    plt.ylabel(metric)
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    
-    # Convert plot to base64 string
-    img_buffer = io.BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
-    img_buffer.seek(0)
-    img_base64 = base64.b64encode(img_buffer.read()).decode()
-    plt.close()
-    
-    return img_base64
-
-def plot_and_compare_metrics_over_history(company_names: str, metric: str):
-    """Plot historical values of a specified metric for a list of companies over time."""
-    if not DATA_LOADED:
-        raise HTTPException(status_code=500, detail="Data not loaded")
-    
-    if isinstance(company_names, str):
-        company_names = [name.strip() for name in company_names.split(',')]
-    
-    filtered_df = df[df['CompanyName'].isin(company_names)]
-
-    if metric not in filtered_df.columns:
-        raise ValueError(f"Metric '{metric}' not found in the data.")
-    
-    plt.figure(figsize=(12, 8))
-    sns.lineplot(data=filtered_df, x='Datetime', y=metric, hue='CompanyName', marker='o')
-    plt.title(f'{metric} Over Time for Companies')
-    plt.xlabel('Date')
-    plt.ylabel(metric)
-    plt.xticks(rotation=45)
-    plt.legend(title='Company Name')
-    plt.tight_layout()
-    
-    # Convert plot to base64 string
-    img_buffer = io.BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
-    img_buffer.seek(0)
-    img_base64 = base64.b64encode(img_buffer.read()).decode()
-    plt.close()
-    
-    return img_base64
+        result = self.agent.invoke_plus_next_call(
+            first_prompt=first_prompt,
+            second_prompt=second_prompt,
+            overall_task_prompt=overall_prompt
+        )
+        return result
 
 def get_chatbot_response(user_message: str):
     """Get response from chatbot - currently returns sample response."""
-    result = f"<!DOCTYPE html><html><head><style>body{{font-family: Arial, sans-serif; padding: 20px;}} h2{{color: #C62828;}}</style></head><body><h2>Sample Response</h2><p>You asked: {user_message}</p><p>This is a sample response. The RAG system is currently disabled.</p></body></html>"
+    try:
+        agent = FinancialRAGAgent(model_name="qwen3:8b-q8_0")
+        question = "Compare Citi and Wells Fargo on some important metrics for the last few years. Prepare a report for the same"
+        result = agent.run_question(user_message)
+        print(result, "\n\n\n\n")
+        print(result.get("final_message", "No final answer found."))
+        result = result.get("final_message", "No final answer found.")
+    except:
+
+        result = f"<!DOCTYPE html><html><head><style>body{{font-family: Arial, sans-serif; padding: 20px;}} h2{{color: #C62828;}}</style></head><body><h2>Sample Response</h2><p>You asked: {user_message}</p><p>This is a sample response. The RAG system is currently disabled.</p></body></html>"
     return result
 
 def generate_pdf_from_history(history: List[Dict]):

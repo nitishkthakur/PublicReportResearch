@@ -30,16 +30,48 @@ financial_tools.df['CompanyName'] = financial_tools.df['CompanyName'].replace(ba
 tools_list = [financial_tools.compare_companies_metric, financial_tools.get_metric_trends, 
               financial_tools.get_metric_for_company_quarter_year]
 
+class FinancialRAGAgent:
+    def __init__(self, model_name: str):
+        self.model_name = model_name
+        self.df = financial_tools.df
+        self.agent = OllamaAgent(
+            model_name=self.model_name,
+            tools=tools_list,
+            output_schema=None
+        )
+
+    def run_question(self, question: str):
+        role = "You are an expert Earnings Data Extractor and Analyzer. "
+        task = "Call the appropriate functions to extract the earnings data from the DataFrame and analyze it for the companies mentioned.\n"
+        context_company_names = (
+            "\nWhen the user asks to search for a company, try to map their mentioned name to a list of pre-defined companies. "
+            "The allowed company names are as follows :" + f"{', '.join(self.df['CompanyName'].unique().tolist())}" + "\n"
+        )
+        Context = "\nHere are the metrics present in the data:" + f"{', '.join(self.df.columns.tolist()[2:])}" + ""
+        first_prompt = role + task + context_company_names + Context + question
+        overall_prompt = (
+            "You are a helpful assistant that provides answers based on user queries. "
+            "You will be provided with the conversation to follow which might consist of answers from a tool call. "
+            "If any information you need is not present in the following conversation, you mention so."
+        )
+        second_prompt = "Now, write the final answer to the user questions based on the above conversation"
+
+        result = self.agent.invoke_plus_next_call(
+            first_prompt=first_prompt,
+            second_prompt=second_prompt,
+            overall_task_prompt=overall_prompt
+        )
+        return result
+
 
 if __name__ == "__main__":
-    # Create agent
-    agent = OllamaAgent(
-        model_name="qwen3:8b-q8_0",
-        tools=tools_list,
-        output_schema=None
-    )
+    agent = FinancialRAGAgent(model_name="qwen3:8b-q8_0")
+    question = "Compare Citi and Wells Fargo on some important metrics for the last few years. Prepare a report for the same"
+    result = agent.run_question(question)
+    print(result, "\n\n\n\n")
+    print(result.get("final_message", "No final answer found."))
 
-    # Use agent on 2 calls
+    '''# Use agent on 2 calls
     # Constructing the first prompt
     df = financial_tools.df
     role = "You are an expert Earnings Data Extractor and Analyzer. " 
@@ -58,6 +90,10 @@ if __name__ == "__main__":
         second_prompt=second_prompt,
         overall_task_prompt=overall_prompt
     )
-    print(result, "\n\n\n\n")
-    print(result.get("final_message", "No final answer found."))
+
+
     
+    print(result, "\n\n\n\n")
+    print(result.get("final_message", "No final answer found."))'''
+
+
