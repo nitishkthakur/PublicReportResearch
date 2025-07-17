@@ -261,14 +261,14 @@ function toggleFullscreenChat() {
         mainContent.classList.add('fullscreen-chat');
         sidebar.style.display = 'none';
         navbar.style.display = 'none';
-        fullscreenBtn.innerHTML = '🗗'; // Exit fullscreen icon
+        fullscreenBtn.innerHTML = '⛝'; // Exit fullscreen icon
         fullscreenBtn.title = 'Exit Fullscreen';
     } else {
         // Exit fullscreen mode
         mainContent.classList.remove('fullscreen-chat');
         sidebar.style.display = 'block';
         navbar.style.display = 'flex';
-        fullscreenBtn.innerHTML = '🗖'; // Fullscreen icon
+        fullscreenBtn.innerHTML = '⛶'; // Fullscreen icon
         fullscreenBtn.title = 'Enter Fullscreen';
     }
     
@@ -278,21 +278,18 @@ function toggleFullscreenChat() {
 
 // Add fullscreen toggle button
 function addFullscreenButton() {
-    const inputContainer = document.querySelector('.input-container');
-    if (inputContainer && !document.getElementById('fullscreen-btn')) {
+    const chatContainer = document.getElementById('chat-container');
+    if (chatContainer && !document.getElementById('fullscreen-btn')) {
         const fullscreenBtn = document.createElement('button');
         fullscreenBtn.id = 'fullscreen-btn';
         fullscreenBtn.type = 'button';
-        fullscreenBtn.className = 'submit-button';
-        fullscreenBtn.innerHTML = '🗖'; // Fullscreen icon
+        fullscreenBtn.className = 'fullscreen-btn';
+        fullscreenBtn.innerHTML = '⛶'; // Elegant maximize icon
         fullscreenBtn.title = 'Enter Fullscreen';
         fullscreenBtn.onclick = toggleFullscreenChat;
-        fullscreenBtn.style.minWidth = '50px';
-        fullscreenBtn.style.padding = '12px 15px';
         
-        // Insert before the download button
-        const downloadLink = inputContainer.querySelector('.download-link');
-        inputContainer.insertBefore(fullscreenBtn, downloadLink);
+        // Add the button to the chat container
+        chatContainer.appendChild(fullscreenBtn);
     }
 }
 

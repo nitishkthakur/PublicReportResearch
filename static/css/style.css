@@ -295,9 +295,58 @@ body {
     border: 1px solid #ddd;
     border-radius: 8px;
     padding: 15px;
+    padding-top: 50px; /* Space for fullscreen button */
     background-color: var(--light-gray);
     margin-bottom: var(--chat-margin-bottom);
     scroll-behavior: smooth;
+    position: relative;
+}
+
+/* Fullscreen Button */
+.fullscreen-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--border-gray);
+    border-radius: 6px;
+    color: var(--text-gray);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.fullscreen-btn:hover {
+    background-color: var(--pleasant-red);
+    color: white;
+    border-color: var(--pleasant-red);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(198, 40, 40, 0.2);
+}
+
+.fullscreen-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Fullscreen mode adjustments */
+.main-content.fullscreen-chat .fullscreen-btn {
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border-color: transparent;
+}
+
+.main-content.fullscreen-chat .fullscreen-btn:hover {
+    background-color: var(--pleasant-red);
+    border-color: var(--pleasant-red);
 }
 
 .chat-container::-webkit-scrollbar {

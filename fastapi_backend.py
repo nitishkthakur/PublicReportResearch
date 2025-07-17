@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 import seaborn as sns
+from basic_ollama_agent_with_post import FinancialRAGAgent
 from datetime import datetime
 import json
 import os
@@ -49,6 +50,12 @@ chat_history = []
 try:
     financial_tools = FinancialDataTools("12_metrics.xlsx")
     financial_tools.load_data()
+    tools_list = [financial_tools.compare_companies_metric, financial_tools.get_metric_trends, 
+                financial_tools.get_metric_for_company_quarter_year]
+
+    # Configuration - Define your preferred agent provider and model here
+    agent_provider = "openai"  # Choose: "openai" or "ollama"
+    
     bank_name_mapping = {'AMERICAN EXPRESS COMPANY': 'American Express',
         'Bank of America Corporation': 'Bank of America',
         'CAPITAL\xa0ONE\xa0FINANCIAL\xa0CORP': 'Capital One',
@@ -71,7 +78,26 @@ try:
 
     }
 
+
+
     financial_tools.df['CompanyName'] = financial_tools.df['CompanyName'].replace(bank_name_mapping)
+
+    tools_list = [financial_tools.compare_companies_metric, financial_tools.get_metric_trends, 
+                financial_tools.get_metric_for_company_quarter_year]
+
+    # Model selection based on provider
+    if agent_provider == "openai":
+        model_name = "gpt-4.1-mini"  # Options: "gpt-4.1-mini", "gpt-4.1"
+    else:  # ollama
+        model_name = "qwen3:8b-q8_0"  # Options: "qwen3:8b-q8_0", "llama3:8b", "gemma2:9b"
+
+    print(f"Using {agent_provider.upper()} agent with model: {model_name}")
+
+    # Initialize the agent
+    agent = FinancialRAGAgent(model_name=model_name, agent_provider=agent_provider,
+                                tools_list=tools_list, financial_tools=financial_tools)
+
+    
 
     DATA_LOADED = True
 except Exception as e:
@@ -86,71 +112,17 @@ class ChatResponse(BaseModel):
     response: str
     response_type: str
     data: Optional[Dict[str, Any]] = None
-tools_list = [financial_tools.compare_companies_metric, financial_tools.get_metric_trends, 
-              financial_tools.get_metric_for_company_quarter_year]
-
-class FinancialRAGAgent:
-    def __init__(self, model_name: str, agent_provider: str = "openai"):
-        """
-        Initialize the Financial RAG Agent.
-        
-        Args:
-####### Read Data and set things up ########
-try:
-            model_name: Name of the model to use
-            agent_provider: Either "openai" or "ollama" to specify which agent to use
-        """
-        self.model_name = model_name
-        self.agent_provider = agent_provider.lower()
-        self.df = financial_tools.df
-        
-        # Initialize the appropriate agent based on provider
-        if self.agent_provider == "openai":
-            self.agent = OpenAIAgent(
-                model_name=self.model_name,
-                tools=tools_list,
-                output_schema=None
-            )
-        elif self.agent_provider == "ollama":
-            self.agent = OllamaAgent(
-                model_name=self.model_name,
-                tools=tools_list,
-                output_schema=None
-            )
-        else:
-            raise ValueError(f"Unsupported agent provider: {agent_provider}. Choose 'openai' or 'ollama'.")
-
-    def run_question(self, question: str):
-        role = "You are an expert Earnings Data Extractor and Analyzer. "
-        task = "Call the appropriate functions to extract the earnings data from the DataFrame and analyze it for the companies mentioned.\n"
-        context_company_names = (
-            "\nWhen the user asks to search for a company, try to map their mentioned name to a list of pre-defined companies. "
-            "The allowed company names are as follows :" + f"{', '.join(self.df['CompanyName'].unique().tolist())}" + "\n"
-        )
-        Context = "\nHere are the metrics present in the data:" + f"{', '.join(self.df.columns.tolist()[2:])}" + ""
-        first_prompt = role + task + context_company_names + Context + question
-        overall_prompt = (
-            "You are a helpful assistant that provides answers based on user queries. "
-            "You will be provided with the conversation to follow which might consist of answers from a tool call. "
-            "If any information you need is not present in the following conversation, you mention so."
-        )
-        second_prompt = "Now, write the final answer to the user questions in html format based on the above conversation"
-
-        result = self.agent.invoke_plus_next_call(
-            first_prompt=first_prompt,
-            second_prompt=second_prompt,
-            overall_task_prompt=overall_prompt
-        )
-        return result
 
 def get_chatbot_response(user_message: str):
     """Get response from chatbot - currently returns sample response."""
     try:
-        agent = FinancialRAGAgent(model_name="gpt-4.1-mini", agent_provider="openai")
+        #agent = FinancialRAGAgent(model_name="gpt-4.1-mini", agent_provider="openai")
+        #result = agent.run_question(user_message)
+        #print(result, "\n\n\n\n")
+        #print(result.get("final_message", "No final answer found."))
+        #result = result.get("final_message", "No final answer found.")
         result = agent.run_question(user_message)
-        print(result, "\n\n\n\n")
-        print(result.get("final_message", "No final answer found."))
-        result = result.get("final_message", "No final answer found.")
+
     except:
 
         result = f"<!DOCTYPE html><html><head><style>body{{font-family: Arial, sans-serif; padding: 20px;}} h2{{color: #C62828;}}</style></head><body><h2>Sample Response</h2><p>You asked: {user_message}</p><p>This is a sample response. The RAG system is currently disabled.</p></body></html>"
