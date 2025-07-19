@@ -12,19 +12,19 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('Agg')
 import seaborn as sns
-from basic_ollama_agent_with_post import FinancialRAGAgent
+from agents.basic_ollama_agent_with_post import FinancialRAGAgent
 from datetime import datetime
 import json
 import os
 import logging
 from tools import *
-from basic_ollama_agent_with_post import OllamaAgent
-from basic_openai_agent import OpenAIAgent
+from agents.basic_ollama_agent_with_post import OllamaAgent
+from agents.basic_openai_agent import OpenAIAgent
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
-from excel_rag import FinancialDataTools
+from rag.excel_rag import FinancialDataTools
 from utils import undo_sec_quarterly_cumulative, process_sec_quarterly_data
 try:
     from xhtml2pdf import pisa
