@@ -278,8 +278,8 @@ function toggleFullscreenChat() {
 
 // Add fullscreen toggle button
 function addFullscreenButton() {
-    const chatContainer = document.getElementById('chat-container');
-    if (chatContainer && !document.getElementById('fullscreen-btn')) {
+    const chatSection = document.getElementById('chat-section');
+    if (chatSection && !document.getElementById('fullscreen-btn')) {
         const fullscreenBtn = document.createElement('button');
         fullscreenBtn.id = 'fullscreen-btn';
         fullscreenBtn.type = 'button';
@@ -288,8 +288,8 @@ function addFullscreenButton() {
         fullscreenBtn.title = 'Enter Fullscreen';
         fullscreenBtn.onclick = toggleFullscreenChat;
         
-        // Add the button to the chat container
-        chatContainer.appendChild(fullscreenBtn);
+        // Add the button to the chat section (outside the scrollable chat container)
+        chatSection.appendChild(fullscreenBtn);
     }
 }
 

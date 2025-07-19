@@ -221,7 +221,7 @@ body {
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 95%;
     margin: 0 auto;
 }
 
@@ -288,6 +288,11 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Chat Section */
+.chat-section {
+    position: relative;
+}
+
 /* Chat Container */
 .chat-container {
     height: calc(100vh - var(--navbar-height) - var(--main-padding-top) - var(--main-padding-bottom) - var(--bank-selector-height) - var(--input-container-height) - var(--chat-margin-bottom));
@@ -321,7 +326,7 @@ body {
     justify-content: center;
     backdrop-filter: blur(4px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 10;
+    z-index: 1000;
 }
 
 .fullscreen-btn:hover {
