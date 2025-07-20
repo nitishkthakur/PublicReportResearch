@@ -22,6 +22,7 @@ class GroqAgent:
         self.tools = tools
         self.output_schema = output_schema
         self.tool_schemas = self._generate_tool_schemas()
+        self.conversation_history = []  # Store conversation history
 
     def _generate_tool_schemas(self) -> List[Dict[str, Any]]:
         schemas = []
@@ -124,6 +125,80 @@ class GroqAgent:
             "final_message": second.get("message") if "error" not in second else second.get("error")
         }
 
+    def invoke_plus_history(self, prompt: str, reset_history: bool = False) -> Dict[str, Any]:
+        """
+        Invoke the agent with conversation history tracking.
+        
+        Args:
+            prompt: The user's input prompt
+            reset_history: Whether to reset the conversation history before this call
+            
+        Returns:
+            Dict containing the response with history maintained
+        """
+        if reset_history:
+            self.conversation_history = []
+            
+        # Add user message to history
+        self.conversation_history.append({"role": "user", "content": prompt})
+        
+        # Prepare parameters with full conversation history
+        params = {"model": self.model_name, "messages": self.conversation_history.copy()}
+        if self.tool_schemas:
+            params.update({"tools": self.tool_schemas, "tool_choice": "auto"})
+        if self.output_schema:
+            params["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "structured_output",
+                    "schema": self.output_schema.model_json_schema()
+                }
+            }
+        
+        response = self.client.chat.completions.create(**params)
+        
+        result = {"message": response.choices[0].message.content, "tool_calls": [], "structured_output": None}
+        
+        # Handle tool calls
+        calls = getattr(response.choices[0].message, "tool_calls", [])
+        if calls:
+            # Add assistant message with tool calls to history
+            self.conversation_history.append(response.choices[0].message)
+            
+            for call in calls:
+                args = json.loads(call.function.arguments)
+                res = self._execute_tool(call.function.name, args)
+                result["tool_calls"].append({"tool": call.function.name, "arguments": args, "result": res})
+                
+                # Add tool response to history
+                self.conversation_history.append({
+                    "role": "tool",
+                    "content": str(res),
+                    "tool_call_id": call.id
+                })
+            
+            # Get follow-up response with updated history
+            follow = self.client.chat.completions.create(model=self.model_name, messages=self.conversation_history)
+            result["message"] = follow.choices[0].message.content
+            
+            # Add final assistant response to history
+            self.conversation_history.append({"role": "assistant", "content": result["message"]})
+        else:
+            # Add assistant response to history for non-tool calls
+            self.conversation_history.append({"role": "assistant", "content": result["message"]})
+
+        # Handle structured output
+        if self.output_schema and result["message"]:
+            try:
+                result["structured_output"] = self.output_schema(**json.loads(result["message"]))
+            except Exception as e:
+                result["structured_output"] = f"Failed to parse structured output: {e}"
+
+        # Add history to result for debugging/inspection
+        result["conversation_history"] = self.conversation_history.copy()
+        
+        return result
+
     def help(self):
         """
         Print usage examples for GroqAgent.
@@ -144,6 +219,11 @@ class GroqAgent:
             f"<user>{second_prompt}</user>"
         )""")
         print("   print(result['final_message'])")
+        print("4) Conversation with history (invoke_plus_history):")
+        print("   result = agent.invoke_plus_history('Hello, who won the world series in 2020?')")
+        print("   print(result['message'])")
+        print("   result = agent.invoke_plus_history('Tell me more about him.', reset_history=False)")
+        print("   print(result['message'])")
 
 
 
