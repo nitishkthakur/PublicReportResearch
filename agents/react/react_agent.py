@@ -26,6 +26,9 @@ class ReactStateGeneric(BaseModel):
     Final: bool = Field(..., description="Whether this is the final iteration and the task is complete")
     CurrentIterationNumber: int = Field(..., description="The current iteration number in the ReAct cycle", ge=0)
 
+class ReactStateBasic(BaseModel):
+    Task: str = Field(..., description="The main task or goal that the agent needs to accomplish in this step")
+    
 
 
     
@@ -71,7 +74,7 @@ tools_list = [financial_tools.compare_companies_metric, financial_tools.get_metr
             financial_tools.get_metric_for_company_quarter_year]
 
 
-output_schema = ReactStateGeneric
+output_schema = ReactStateBasic
 
 agent = GroqAgent(
     model_name=GROQ_MODELS[0],
@@ -80,9 +83,10 @@ agent = GroqAgent(
 )
 
 class ReactAgent:
-    def __init__(self, react_prompt, agent, max_iterations: int = 5):
+    def __init__(self, react_prompt, agent, model = "meta-llama/llama-4-maverick-17b-128e-instruct", max_iterations: int = 5):
         self.react_prompt = react_prompt
         self.agent = agent
+        self.model = model
         self.max_iterations = max_iterations
 
     def invoke(self, task: str) -> Dict[str, Any]:
@@ -107,10 +111,16 @@ class ReactAgent:
             
             # Get response from agent
             print("🤖 Invoking agent...")
-            response = self.agent.invoke_plus_history(current_input)
-            
+            agent = GroqAgent(
+                    model_name=self.model,
+                    tools=[],
+                    output_schema=output_schema
+                )
+            response = agent.invoke(current_input)
+            print("\n\n\n Response is: ", response, type(response), "\n\n\n")
+
             if response:
-                print(f"✅ Agent response received")
+                print(f"Agent response received")
                 if hasattr(response, 'Task'):
                     print(f"   Task: {getattr(response, 'Task', 'N/A')}")
                 if hasattr(response, 'Action'):
@@ -137,7 +147,7 @@ class ReactAgent:
         return response
     
 
-reactor = ReactAgent(react_prompt = react_prompts.nvidia_react_minus_tools, agent = agent)
+reactor = ReactAgent(react_prompt = react_prompts.custom_react_prompt, agent = agent)
 print("🎬 Starting ReactAgent execution...")
 result = reactor.invoke(f"How did Citi Bank do in Q1 2025 compared to JP Morgan ? Comment on the most important metrics and prepare a full report. Format your final answer in markdown. Here is the data {financial_tools.df_json}")
 print("\n🏁 ReactAgent execution completed!")
