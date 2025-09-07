@@ -2,3 +2,22 @@
 __pycache__/
 .venv/
 
+# Additional security patterns
+.env.*
+*.env
+secrets/
+*.key
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+security_scan_results.json
